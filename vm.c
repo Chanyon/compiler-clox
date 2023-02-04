@@ -15,9 +15,12 @@
 
 VM vm;
 
-void initVM() { resetStack(); }
+void initVM() {
+  resetStack();
+  vm.objects = NULL;
+}
 
-void freeVM() {}
+void freeVM() { freeObjects(); }
 
 bool isNumber(Value v) {
   if (v.type == VAL_NUMBER) {
