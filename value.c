@@ -61,10 +61,11 @@ bool valueEqual(Value a, Value b) {
   case VAL_NUMBER:
     return AS_NUMBER(a) == AS_NUMBER(b);
   case VAL_OBJ:
-    ObjString *astring = AS_STRING(a);
-    ObjString *bstring = AS_STRING(b);
-    return (astring->length == bstring->length) &&
-           memcmp(astring->chars, bstring->chars, astring->length) == 0;
+    // ObjString *astring = AS_STRING(a);
+    // ObjString *bstring = AS_STRING(b);
+    // return (astring->length == bstring->length) &&
+    //        memcmp(astring->chars, bstring->chars, astring->length) == 0;
+    return AS_OBJ(a) == AS_OBJ(b);
   default:
     return false;
   }

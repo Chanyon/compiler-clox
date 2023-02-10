@@ -18,7 +18,7 @@ option(USE_MYMATH "use des/ provided math implementation" ON)
 #endif()
 
 set(SRC_LIST main.c)
-set(SRC_LIST2 chunk.c memory.c debug.c value.c vm.c compiler.c scanner.c object.c)
+set(SRC_LIST2 chunk.c memory.c debug.c value.c vm.c compiler.c scanner.c object.c table.c)
 add_executable(${PROJECT_NAME} ${SRC_LIST} ${SRC_LIST2})
 
 #deps.h
