@@ -32,4 +32,9 @@ static void grouping();
 static ParseRule *getRule(TokenType type);
 static void literal();
 static void string();
+static void declaration();
+static void statement();
+static bool match(TokenType type);
+static bool check(TokenType type);
+static void printStatement();
 #endif

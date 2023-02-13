@@ -65,6 +65,8 @@ uint32_t disassembleInstruction(Chunk *chunk, uint32_t offset) {
     return simpleInstruction("OP_LESS", offset);
   case OP_GREATER:
     return simpleInstruction("OP_GREATER", offset);
+  case OP_PRINT:
+    return simpleInstruction("OP_PRINT", offset);
   default:
     printf("Unknown opcode %d\n", instruction);
     return offset + 1;

@@ -62,13 +62,14 @@ static void advance() {
   }
 }
 
-// 消费
+// 消费 token
 static void consume(TokenType type, const char *message) {
+  // skip current token
   if (parser.current.type == type) {
     advance();
-    return;
+  } else {
+    errorAtCurrent(message);
   }
-  errorAtCurrent(message);
 }
 
 static void emitByte(uint8_t byte) {
@@ -105,29 +106,51 @@ static void endCompiler() {
 #endif
 }
 
+static bool match(TokenType type) {
+  if (!check(type)) {
+    return false;
+  } else {
+    advance();
+    return true;
+  }
+}
+
+static bool check(TokenType type) { return parser.current.type == type; }
+
 static void parsePrecedence(Precedence precedence) {
   // 1 ; eof
   // p c
   advance();
-  if (parser.previous.type != TOKEN_SEMICOLON) {
-    ParseFn prefixRule = getRule(parser.previous.type)->prefix;
-    if (prefixRule == NULL) {
-      error("expect expression.");
-      return;
-    }
-    prefixRule();
-
-    while (precedence <= getRule(parser.current.type)->precedence) {
-      advance();
-      ParseFn infixRule = getRule(parser.previous.type)->infix;
-      infixRule();
-    }
-  } else {
+  ParseFn prefixRule = getRule(parser.previous.type)->prefix;
+  if (prefixRule == NULL) {
+    error("no match prefix function");
+    return;
+  }
+  prefixRule();
+  while (precedence <= getRule(parser.current.type)->precedence) {
     advance();
+    ParseFn infixRule = getRule(parser.previous.type)->infix;
+    infixRule();
   }
 }
 
 static void expression() { parsePrecedence(PREC_ASSIGNMENT); }
+
+static void declaration() {
+  statement();
+}
+
+static void statement() {
+  if (match(TOKEN_PRINT)) {
+    printStatement();
+  }
+}
+
+static void printStatement() {
+  expression();
+  consume(TOKEN_SEMICOLON, "expect `;` after value.");
+  emitByte(OP_PRINT);
+}
 
 static void number() {
   double value = strtod(parser.previous.start, NULL);
@@ -275,8 +298,10 @@ bool compiler(const char *source, Chunk *chunk) {
   parser.panicMode = false;
 
   advance();
-  expression();
-  // consume(TOKEN_EOF, "expect end expression");
+  while (!match(TOKEN_EOF)) {
+    declaration();
+    advance();
+  }
   endCompiler();
   return parser.hadError;
 }

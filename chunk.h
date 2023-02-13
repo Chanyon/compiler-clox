@@ -20,6 +20,7 @@ typedef enum {
   OP_EQUAL,
   OP_LESS,
   OP_GREATER,
+  OP_PRINT,
 } Opcode;
 
 // Chunk 保存所有指令

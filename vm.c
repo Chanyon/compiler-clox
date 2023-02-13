@@ -171,9 +171,13 @@ static InterpretResult run() {
     case OP_GREATER:
       push(binaryEval('>'));
       break;
-    case OP_RETURN: {
+    case OP_PRINT:
       printValue(pop());
       printf("\n");
+      break;
+    case OP_RETURN: {
+      // printValue(pop());
+      // printf("\n");
       return INTERPRET_OK;
     }
     } // switch end
