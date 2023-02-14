@@ -37,4 +37,5 @@ static void statement();
 static bool match(TokenType type);
 static bool check(TokenType type);
 static void printStatement();
+static void expressionStatement();
 #endif

@@ -136,13 +136,13 @@ static void parsePrecedence(Precedence precedence) {
 
 static void expression() { parsePrecedence(PREC_ASSIGNMENT); }
 
-static void declaration() {
-  statement();
-}
+static void declaration() { statement(); }
 
 static void statement() {
   if (match(TOKEN_PRINT)) {
     printStatement();
+  } else {
+    expressionStatement();
   }
 }
 
@@ -150,6 +150,12 @@ static void printStatement() {
   expression();
   consume(TOKEN_SEMICOLON, "expect `;` after value.");
   emitByte(OP_PRINT);
+}
+
+static void expressionStatement() {
+  expression();
+  consume(TOKEN_SEMICOLON, "expect `;` after expression.");
+  emitByte(OP_POP);
 }
 
 static void number() {
