@@ -2,6 +2,7 @@
 #define clox_compiler_h
 #include "chunk.h"
 #include "scanner.h"
+#include <stdint.h>
 
 typedef enum {
   PREC_NONE,
@@ -17,7 +18,7 @@ typedef enum {
   PREC_PRIMARY     // a.b | arr[0]
 } Precedence;
 
-typedef void (*ParseFn)();
+typedef void (*ParseFn)(bool canAssign);
 
 typedef struct {
   ParseFn prefix;
@@ -27,15 +28,22 @@ typedef struct {
 
 bool compiler(const char *source, Chunk *chunk);
 // static void parsePrecedence(Precedence precedence);
-static void binary();
-static void grouping();
+static void advance();
+static void binary(bool canAssign);
+static void grouping(bool canAssign);
 static ParseRule *getRule(TokenType type);
-static void literal();
-static void string();
+static void literal(bool canAssign);
+static void string(bool canAssign);
+static void variable(bool canAssign);
 static void declaration();
 static void statement();
 static bool match(TokenType type);
 static bool check(TokenType type);
 static void printStatement();
 static void expressionStatement();
+static void synchronize();
+static void varDeclaration();
+static uint8_t parseVariable(const char* msg);
+static void defineVariable(uint8_t global);
+static uint8_t identifierConstant(Token *token);
 #endif

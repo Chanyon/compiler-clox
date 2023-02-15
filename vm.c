@@ -20,10 +20,12 @@ void initVM() {
   resetStack();
   vm.objects = NULL;
   initTable(&vm.strings);
+  initTable(&vm.globals);
 }
 
 void freeVM() {
   freeTable(&vm.strings);
+  freeTable(&vm.globals);
   freeObjects();
 }
 
@@ -84,6 +86,7 @@ Value binaryEval(char ch) {
 static InterpretResult run() {
 #define READ_BYTE() (*vm.ip++)
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
+#define READ_STRING() AS_STRING(READ_CONSTANT())
   // #define BINARY_OP(op)                                                          \
 //   do {                                                                         \
 //     double b = pop().as.number;                                                \
@@ -176,9 +179,32 @@ static InterpretResult run() {
       printf("\n");
       break;
     case OP_POP:
-      // pop();
-      printValue(pop());
-      printf("\n");
+      pop();
+      // printValue(pop());
+      // printf("\n");
+      break;
+    case OP_DEFINE_GLOBAL:
+      ObjString *var_name = READ_STRING();
+      tableSet(&vm.globals, var_name, peek(0));
+      pop();
+      break;
+    case OP_GET_GLOBAL:
+      ObjString *vname = READ_STRING();
+      Value value;
+      if (!tableGet(&vm.globals, vname, &value)) {
+        runtimeError("undfined variable `%s`.", vname->chars);
+        return INTERPRET_RUNTIME_ERROR;
+      } else {
+        push(value);
+      }
+      break;
+    case OP_SET_GLOBAL:
+      ObjString *sname = READ_STRING();
+      if (tableSet(&vm.globals, sname, peek(0))) {
+        tableDelete(&vm.globals, sname);
+        runtimeError("undefined variable `%s`.", sname->chars);
+        return INTERPRET_RUNTIME_ERROR;
+      }
       break;
     case OP_RETURN: {
       // printValue(pop());
@@ -190,6 +216,7 @@ static InterpretResult run() {
 
 #undef READ_BYTE
 #undef READ_CONSTANT
+#undef READ_STRING
   // #undef BINARY_OP
 }
 

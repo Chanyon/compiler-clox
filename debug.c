@@ -69,6 +69,12 @@ uint32_t disassembleInstruction(Chunk *chunk, uint32_t offset) {
     return simpleInstruction("OP_PRINT", offset);
   case OP_POP:
     return simpleInstruction("OP_POP", offset);
+  case OP_DEFINE_GLOBAL:
+    return constantInstruction("OP_DEFINE_GLOBAL", chunk, offset);
+  case OP_GET_GLOBAL:
+    return constantInstruction("OP_GET_GLOBAL", chunk, offset);
+  case OP_SET_GLOBAL:
+    return constantInstruction("OP_SET_GLOBAL", chunk, offset);
   default:
     printf("Unknown opcode %d\n", instruction);
     return offset + 1;
