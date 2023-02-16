@@ -26,7 +26,21 @@ typedef struct {
   Precedence precedence;
 } ParseRule;
 
+// local var
+typedef struct {
+  Token name;
+  int depth;
+} Local;
+
+typedef struct {
+  Local locals[UINT8_COUNT];
+  int localCount;
+  int scopeDepth;
+} Compiler;
+
 bool compiler(const char *source, Chunk *chunk);
+static void initCompiler(Compiler *compiler);
+static void error(const char *message);
 // static void parsePrecedence(Precedence precedence);
 static void advance();
 static void binary(bool canAssign);
@@ -43,7 +57,15 @@ static void printStatement();
 static void expressionStatement();
 static void synchronize();
 static void varDeclaration();
-static uint8_t parseVariable(const char* msg);
+static uint8_t parseVariable(const char *msg);
 static void defineVariable(uint8_t global);
 static uint8_t identifierConstant(Token *token);
+static void block();
+static void beginScope();
+static void endScope();
+static void declareVariable();
+static void addLocal(Token name);
+static bool identifierEqual(Token *a, Token *b);
+static int resolveLocal(Compiler *compiler, Token *name);
+static void markInitialized();
 #endif

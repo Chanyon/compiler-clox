@@ -206,6 +206,14 @@ static InterpretResult run() {
         return INTERPRET_RUNTIME_ERROR;
       }
       break;
+    case OP_GET_LOCAL: 
+      uint8_t slot = READ_BYTE();
+      push(vm.stack[slot]);
+      break;
+    case OP_SET_LOCAL:
+      uint8_t slot2 = READ_BYTE();
+      vm.stack[slot2] = peek(0);
+      break;
     case OP_RETURN: {
       // printValue(pop());
       // printf("\n");
