@@ -111,9 +111,6 @@ static void advance() {
 static void consume(TokenType type, const char *message) {
   // skip current token
   if (parser.current.type == type) {
-    if (type == 3) {
-      printf("cuttent token type %d\n", type);
-    }
     advance();
   } else {
     errorAtCurrent(message);
@@ -437,7 +434,7 @@ ParseRule rules[] = {
     [TOKEN_FUN] = {NULL, NULL, PREC_NONE},
     [TOKEN_IF] = {NULL, NULL, PREC_NONE},
     [TOKEN_NIL] = {literal, NULL, PREC_NONE},
-    [TOKEN_OR] = {NULL, or_, PREC_NONE},
+    [TOKEN_OR] = {NULL, or_, PREC_OR},
     [TOKEN_PRINT] = {NULL, NULL, PREC_NONE},
     [TOKEN_RETURN] = {NULL, NULL, PREC_NONE},
     [TOKEN_SUPER] = {NULL, NULL, PREC_NONE},
