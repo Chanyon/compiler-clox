@@ -68,4 +68,7 @@ static void addLocal(Token name);
 static bool identifierEqual(Token *a, Token *b);
 static int resolveLocal(Compiler *compiler, Token *name);
 static void markInitialized();
+static void ifStatement();
+static int emitJump(uint8_t instruction);
+static void patchJump(int offset);
 #endif

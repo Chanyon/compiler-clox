@@ -126,6 +126,22 @@ static void emitBytes(uint8_t opcode, uint8_t byte2) {
   emitByte(byte2);
 }
 
+static int emitJump(uint8_t instruction) {
+  emitByte(instruction);
+  emitByte(0xff); // u16
+  emitByte(0xff);
+  return currentChunk()->count - 2;
+}
+// 88 -81 -2 = 5
+static void patchJump(int offset) {
+  int jump = currentChunk()->count - offset - 2;
+  if (jump > UINT16_MAX) {
+    error("Too much code to jump over.");
+  }
+  currentChunk()->code[offset] = (jump >> 8) & 0xff;
+  currentChunk()->code[offset + 1] = jump & 0xff;
+}
+
 static void emitReturn() { emitByte(OP_RETURN); }
 
 static uint8_t makeConstant(Value value) {
@@ -173,15 +189,14 @@ static void parsePrecedence(Precedence precedence) {
   }
   bool canAssign = precedence <= PREC_ASSIGNMENT;
   prefixRule(canAssign);
-  
+
   while (precedence <= getRule(parser.current.type)->precedence) {
     advance();
     ParseFn infixRule = getRule(parser.previous.type)->infix;
     infixRule(canAssign);
   }
-  
+
   if (!canAssign && match(TOKEN_EQUAL)) {
-    // advance();
     // var a=1; var b = 2 + a = 1;
     error("Invalid assignment target. example `var foo = 1 + bar = 1;`");
   }
@@ -192,6 +207,8 @@ static void expression() { parsePrecedence(PREC_ASSIGNMENT); }
 static void declaration() {
   if (match(TOKEN_VAR)) {
     varDeclaration();
+  } else if (match(TOKEN_IF)) {
+    ifStatement();
   } else if (match(TOKEN_LEFT_BRACE)) {
     beginScope();
     block();
@@ -242,6 +259,7 @@ static uint8_t parseVariable(const char *msg) {
   if (current->scopeDepth > 0) {
     return 0;
   }
+  // global var
   return identifierConstant(&parser.previous);
 }
 
@@ -303,6 +321,28 @@ static void endScope() {
     emitByte(OP_POP);
     current->localCount -= 1;
   }
+}
+
+static void ifStatement() {
+  consume(TOKEN_LEFT_PAREN, "expect `(` after if.");
+  expression();
+  consume(TOKEN_RIGHT_PAREN, "expect `)` after condition.");
+
+  int thenJump = emitJump(OP_JUMP_IF_FLASE);
+  // then
+  emitByte(OP_POP);
+  statement();
+
+  int elseJump = emitJump(OP_JUMP);
+  // 回填正确的跳转操作数
+  patchJump(thenJump);
+
+  // else
+  emitByte(OP_POP);
+  if (match(TOKEN_ELSE)) {
+    statement();
+  }
+  patchJump(elseJump);
 }
 
 static void number(bool canAssign) {

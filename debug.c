@@ -27,12 +27,20 @@ static uint32_t constantInstruction(const char *name, Chunk *chunk,
 }
 
 static uint32_t localInstruction(const char *name, Chunk *chunk,
-                                    uint32_t offset) {
+                                 uint32_t offset) {
   uint8_t slot = chunk->code[offset + 1];
-  printf("opcode:%-16s opcode_index:%1d locals_slot:%1d", name, offset,
-         slot);
+  printf("opcode:%-16s opcode_index:%1d locals_slot:%1d", name, offset, slot);
   printf("\n");
   return offset + 2; // 下一条指令起始位置的偏移量
+}
+
+static int jumpInstruction(const char *name, int sign, Chunk *chunk,
+                           int offset) {
+  uint16_t jump = (uint16_t)(chunk->code[offset + 1] << 8);
+  jump |= chunk->code[offset + 2];
+
+  printf("%-16s %4d -> %d jump: %d \n", name, offset, offset + 3 + sign * jump, jump);
+  return offset + 3;
 }
 
 uint32_t disassembleInstruction(Chunk *chunk, uint32_t offset) {
@@ -88,6 +96,10 @@ uint32_t disassembleInstruction(Chunk *chunk, uint32_t offset) {
     return localInstruction("OP_SET_LOCAL", chunk, offset);
   case OP_GET_LOCAL:
     return localInstruction("OP_GET_LOCAL", chunk, offset);
+  case OP_JUMP_IF_FLASE:
+    return jumpInstruction("OP_JUMP_IF_ELSE", 1, chunk, offset);
+  case OP_JUMP:
+    return jumpInstruction("OP_JUMP", 1, chunk, offset);
   default:
     printf("Unknown opcode %d\n", instruction);
     return offset + 1;

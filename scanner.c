@@ -72,11 +72,12 @@ static void skipWhitespace() {
     case '\t':
       advance();
       break;
+    case '\n':
+      scanner.line += 1;
+      advance();
+      break;
     case '/':
       if (peekNext() == '/') {
-        advance();
-        advance();
-
         while (peek() != '\n' && !isAtEnd()) {
           advance();
         }
@@ -239,7 +240,7 @@ Token scanToken() {
     return makeToken(TOKEN_SLASH);
   case '!':
     if (match('=')) {
-      type = TOKEN_LESS_EQUAL;
+      type = TOKEN_BANG_EQUAL;
     } else {
       type = TOKEN_BANG;
     }

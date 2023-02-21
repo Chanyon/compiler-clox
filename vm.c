@@ -87,6 +87,10 @@ static InterpretResult run() {
 #define READ_BYTE() (*vm.ip++)
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
 #define READ_STRING() AS_STRING(READ_CONSTANT())
+#define READ_SHORT()                                                           \
+  (vm.ip += 2,                                                                 \
+   (uint16_t)((vm.chunk->code[*vm.ip - 2] << 8) | vm.chunk->code[*vm.ip - 1]))
+
   // #define BINARY_OP(op)                                                          \
 //   do {                                                                         \
 //     double b = pop().as.number;                                                \
@@ -206,13 +210,24 @@ static InterpretResult run() {
         return INTERPRET_RUNTIME_ERROR;
       }
       break;
-    case OP_GET_LOCAL: 
+    case OP_GET_LOCAL:
       uint8_t slot = READ_BYTE();
       push(vm.stack[slot]);
       break;
     case OP_SET_LOCAL:
       uint8_t slot2 = READ_BYTE();
       vm.stack[slot2] = peek(0);
+      break;
+    case OP_JUMP_IF_FLASE:
+      uint16_t offset = READ_SHORT();
+      Value val = peek(0);
+      if ((val.type == VAL_BOOL && !val.as.boolean) || val.type == VAL_NIL) {
+        vm.ip += offset;
+      }
+      break;
+    case OP_JUMP:
+      uint16_t jump_offset = READ_SHORT();
+      vm.ip += jump_offset;
       break;
     case OP_RETURN: {
       // printValue(pop());
@@ -225,6 +240,7 @@ static InterpretResult run() {
 #undef READ_BYTE
 #undef READ_CONSTANT
 #undef READ_STRING
+#undef READ_SHORT
   // #undef BINARY_OP
 }
 
