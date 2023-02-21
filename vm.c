@@ -89,7 +89,7 @@ static InterpretResult run() {
 #define READ_STRING() AS_STRING(READ_CONSTANT())
 #define READ_SHORT()                                                           \
   (vm.ip += 2,                                                                 \
-   (uint16_t)((vm.chunk->code[*vm.ip - 2] << 8) | vm.chunk->code[*vm.ip - 1]))
+   (uint16_t)((vm.ip[-2] << 8) | vm.ip[-1]))
 
   // #define BINARY_OP(op)                                                          \
 //   do {                                                                         \
