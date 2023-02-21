@@ -87,9 +87,7 @@ static InterpretResult run() {
 #define READ_BYTE() (*vm.ip++)
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
 #define READ_STRING() AS_STRING(READ_CONSTANT())
-#define READ_SHORT()                                                           \
-  (vm.ip += 2,                                                                 \
-   (uint16_t)((vm.ip[-2] << 8) | vm.ip[-1]))
+#define READ_SHORT() (vm.ip += 2, (uint16_t)((vm.ip[-2] << 8) | vm.ip[-1]))
 
   // #define BINARY_OP(op)                                                          \
 //   do {                                                                         \
@@ -218,7 +216,7 @@ static InterpretResult run() {
       uint8_t slot2 = READ_BYTE();
       vm.stack[slot2] = peek(0);
       break;
-    case OP_JUMP_IF_FLASE:
+    case OP_JUMP_IF_FALSE:
       uint16_t offset = READ_SHORT();
       Value val = peek(0);
       if ((val.type == VAL_BOOL && !val.as.boolean) || val.type == VAL_NIL) {
@@ -228,6 +226,10 @@ static InterpretResult run() {
     case OP_JUMP:
       uint16_t jump_offset = READ_SHORT();
       vm.ip += jump_offset;
+      break;
+    case OP_LOOP:
+      uint16_t loop_offset = READ_SHORT();
+      vm.ip -= loop_offset;
       break;
     case OP_RETURN: {
       // printValue(pop());

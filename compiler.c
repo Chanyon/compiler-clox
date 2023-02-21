@@ -111,6 +111,9 @@ static void advance() {
 static void consume(TokenType type, const char *message) {
   // skip current token
   if (parser.current.type == type) {
+    if (type == 3) {
+      printf("cuttent token type %d\n", type);
+    }
     advance();
   } else {
     errorAtCurrent(message);
@@ -140,6 +143,16 @@ static void patchJump(int offset) {
   }
   currentChunk()->code[offset] = (jump >> 8) & 0xff;
   currentChunk()->code[offset + 1] = jump & 0xff;
+}
+
+static void emitLoop(int loopStart) {
+  emitByte(OP_LOOP);
+  int offset = currentChunk()->count - loopStart + 2;
+  if (offset > UINT16_MAX) {
+    error("loop body too large");
+  }
+  emitByte((offset >> 8) & 0xff);
+  emitByte(offset & 0xff);
 }
 
 static void emitReturn() { emitByte(OP_RETURN); }
@@ -213,6 +226,8 @@ static void declaration() {
     beginScope();
     block();
     endScope();
+  } else if (match(TOKEN_WHILE)) {
+    whileStatement();
   } else {
     statement();
   }
@@ -328,7 +343,7 @@ static void ifStatement() {
   expression();
   consume(TOKEN_RIGHT_PAREN, "expect `)` after condition.");
 
-  int thenJump = emitJump(OP_JUMP_IF_FLASE);
+  int thenJump = emitJump(OP_JUMP_IF_FALSE);
   // then
   emitByte(OP_POP);
   statement();
@@ -343,6 +358,25 @@ static void ifStatement() {
     statement();
   }
   patchJump(elseJump);
+}
+
+static void whileStatement() {
+  // 往回跳位置
+  int loopStart = currentChunk()->count;
+  consume(TOKEN_LEFT_PAREN, "expect `(` after while.");
+  expression();
+  consume(TOKEN_RIGHT_PAREN, "expect `)` after while.");
+
+  int exitJump = emitJump(OP_JUMP_IF_FALSE);
+  consume(TOKEN_RIGHT_BRACE, "expect `{` after right paren `)`.");
+  emitByte(OP_POP);
+  while (!match(TOKEN_RIGHT_BRACE) && !match(TOKEN_EOF)) {
+    statement();
+  }
+  emitLoop(loopStart);
+  // consume(TOKEN_RIGHT_BRACE, "expect `}` after while.");
+  patchJump(exitJump);
+  emitByte(OP_POP);
 }
 
 static void number(bool canAssign) {
@@ -395,7 +429,7 @@ ParseRule rules[] = {
     [TOKEN_LESS_EQUAL] = {NULL, binary, PREC_COMPARISON},
     [TOKEN_IDENTIFIER] = {variable, NULL, PREC_NONE},
     [TOKEN_STRING] = {string, NULL, PREC_NONE},
-    [TOKEN_AND] = {NULL, NULL, PREC_NONE},
+    [TOKEN_AND] = {NULL, and_, PREC_AND},
     [TOKEN_CLASS] = {NULL, NULL, PREC_NONE},
     [TOKEN_ELSE] = {NULL, NULL, PREC_NONE},
     [TOKEN_FALSE] = {literal, NULL, PREC_NONE},
@@ -403,7 +437,7 @@ ParseRule rules[] = {
     [TOKEN_FUN] = {NULL, NULL, PREC_NONE},
     [TOKEN_IF] = {NULL, NULL, PREC_NONE},
     [TOKEN_NIL] = {literal, NULL, PREC_NONE},
-    [TOKEN_OR] = {NULL, NULL, PREC_NONE},
+    [TOKEN_OR] = {NULL, or_, PREC_NONE},
     [TOKEN_PRINT] = {NULL, NULL, PREC_NONE},
     [TOKEN_RETURN] = {NULL, NULL, PREC_NONE},
     [TOKEN_SUPER] = {NULL, NULL, PREC_NONE},
@@ -517,6 +551,25 @@ static int resolveLocal(Compiler *compiler, Token *name) {
     }
   }
   return -1;
+}
+
+static void and_(bool canAssign) {
+  // 如果左边值为假则留在栈顶，跳过右值
+  // 如果左边值为真则弹出栈顶，计算右值留在栈顶
+  int endJump = emitJump(OP_JUMP_IF_FALSE);
+  emitByte(OP_POP);
+  parsePrecedence(PREC_AND);
+  patchJump(endJump);
+}
+
+static void or_(bool canAssign) {
+  int elseJump = emitJump(OP_JUMP_IF_FALSE);
+  int endJump = emitJump(OP_JUMP);
+  patchJump(elseJump);
+  // right value
+  emitByte(OP_POP);
+  parsePrecedence(PREC_OR);
+  patchJump(endJump);
 }
 
 bool compiler(const char *source, Chunk *chunk) {

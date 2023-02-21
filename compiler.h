@@ -71,4 +71,8 @@ static void markInitialized();
 static void ifStatement();
 static int emitJump(uint8_t instruction);
 static void patchJump(int offset);
+static void and_(bool canAssign);
+static void or_(bool canAssign);
+static void whileStatement();
+static void emitLoop(int loopStart);
 #endif

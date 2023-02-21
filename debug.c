@@ -96,10 +96,12 @@ uint32_t disassembleInstruction(Chunk *chunk, uint32_t offset) {
     return localInstruction("OP_SET_LOCAL", chunk, offset);
   case OP_GET_LOCAL:
     return localInstruction("OP_GET_LOCAL", chunk, offset);
-  case OP_JUMP_IF_FLASE:
+  case OP_JUMP_IF_FALSE:
     return jumpInstruction("OP_JUMP_IF_ELSE", 1, chunk, offset);
   case OP_JUMP:
     return jumpInstruction("OP_JUMP", 1, chunk, offset);
+  case OP_LOOP:
+    return jumpInstruction("OP_LOOP", -1, chunk, offset);
   default:
     printf("Unknown opcode %d\n", instruction);
     return offset + 1;
