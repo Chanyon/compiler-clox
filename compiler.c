@@ -217,14 +217,6 @@ static void expression() { parsePrecedence(PREC_ASSIGNMENT); }
 static void declaration() {
   if (match(TOKEN_VAR)) {
     varDeclaration();
-  } else if (match(TOKEN_IF)) {
-    ifStatement();
-  } else if (match(TOKEN_LEFT_BRACE)) {
-    beginScope();
-    block();
-    endScope();
-  } else if (match(TOKEN_WHILE)) {
-    whileStatement();
   } else {
     statement();
   }
@@ -236,6 +228,16 @@ static void declaration() {
 static void statement() {
   if (match(TOKEN_PRINT)) {
     printStatement();
+  } else if (match(TOKEN_IF)) {
+    ifStatement();
+  } else if (match(TOKEN_LEFT_BRACE)) {
+    beginScope();
+    block();
+    endScope();
+  } else if (match(TOKEN_WHILE)) {
+    whileStatement();
+  } else if (match(TOKEN_FOR)) {
+    forStatement();
   } else {
     expressionStatement();
   }
@@ -344,8 +346,9 @@ static void ifStatement() {
   // then
   emitByte(OP_POP);
   statement();
-
+  // }
   int elseJump = emitJump(OP_JUMP);
+
   // 回填正确的跳转操作数
   patchJump(thenJump);
 
@@ -364,16 +367,56 @@ static void whileStatement() {
   expression();
   consume(TOKEN_RIGHT_PAREN, "expect `)` after while.");
   int exitJump = emitJump(OP_JUMP_IF_FALSE);
-  
-  if (check(TOKEN_LEFT_BRACE)) {
-    emitByte(OP_POP);
-    while (!match(TOKEN_RIGHT_BRACE) && !match(TOKEN_EOF)) {
-      declaration();
-    }
-    emitLoop(loopStart);
-  }
+
+  emitByte(OP_POP);
+  statement();
+  emitLoop(loopStart);
+
   patchJump(exitJump);
   emitByte(OP_POP);
+}
+
+static void forStatement() {
+  beginScope();
+  consume(TOKEN_LEFT_PAREN, "expect `(` after for.");
+  // init , var foo = 0;
+  if (match(TOKEN_SEMICOLON)) {
+    // no initializer
+  } else if (match(TOKEN_VAR)) {
+    varDeclaration();
+  } else {
+    expressionStatement();
+  }
+  int loopStart = currentChunk()->count;
+  // Condtion
+  int exitJump = -1;
+  if (!match(TOKEN_SEMICOLON)) {
+    expression();
+    consume(TOKEN_SEMICOLON, "expect `;` after loop condtion.");
+    exitJump = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP); // pop loop Condtion value
+  }
+  // Increment clause
+  if (!match(TOKEN_RIGHT_PAREN)) {
+    int boodJump = emitJump(OP_JUMP);
+    int incrementStart = currentChunk()->count;
+    expression();
+    emitByte(OP_POP);
+    consume(TOKEN_RIGHT_PAREN, "expect `)` after for clauses.");
+    emitLoop(loopStart);
+    loopStart = incrementStart;
+    patchJump(boodJump);
+  }
+  // block statement
+  statement();
+  
+  emitLoop(loopStart);
+  // if have Condtion statement
+  if (exitJump != -1) {
+    patchJump(exitJump);
+    emitByte(OP_POP); // if condtion is false, pop condtion value
+  }
+  endScope();
 }
 
 static void number(bool canAssign) {

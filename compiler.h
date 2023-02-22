@@ -75,4 +75,5 @@ static void and_(bool canAssign);
 static void or_(bool canAssign);
 static void whileStatement();
 static void emitLoop(int loopStart);
+static void forStatement();
 #endif
