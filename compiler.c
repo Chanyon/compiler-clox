@@ -363,15 +363,15 @@ static void whileStatement() {
   consume(TOKEN_LEFT_PAREN, "expect `(` after while.");
   expression();
   consume(TOKEN_RIGHT_PAREN, "expect `)` after while.");
-
   int exitJump = emitJump(OP_JUMP_IF_FALSE);
-  consume(TOKEN_RIGHT_BRACE, "expect `{` after right paren `)`.");
-  emitByte(OP_POP);
-  while (!match(TOKEN_RIGHT_BRACE) && !match(TOKEN_EOF)) {
-    statement();
+  
+  if (check(TOKEN_LEFT_BRACE)) {
+    emitByte(OP_POP);
+    while (!match(TOKEN_RIGHT_BRACE) && !match(TOKEN_EOF)) {
+      declaration();
+    }
+    emitLoop(loopStart);
   }
-  emitLoop(loopStart);
-  // consume(TOKEN_RIGHT_BRACE, "expect `}` after while.");
   patchJump(exitJump);
   emitByte(OP_POP);
 }
