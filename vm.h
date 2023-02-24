@@ -47,4 +47,5 @@ static bool isFalsey(Value value);
 static Value concatenate();
 static bool callValue(Value callee, uint8_t argCount);
 static bool call_(ObjFunction *function, uint8_t argCount);
+static void defineNative(const char *name, NativeFn function);
 #endif
