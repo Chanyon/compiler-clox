@@ -13,6 +13,7 @@ typedef enum {
 
 typedef struct Obj Obj;
 typedef struct ObjString ObjString;
+typedef struct ObjFunction ObjFunction;
 
 // 值类型
 typedef struct {
@@ -25,7 +26,7 @@ typedef struct {
 } Value;
 
 typedef struct {
-  ObjString* key;
+  ObjString *key;
   Value value;
 } Entry;
 

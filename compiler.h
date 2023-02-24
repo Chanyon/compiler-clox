@@ -1,6 +1,7 @@
 #ifndef clox_compiler_h
 #define clox_compiler_h
 #include "chunk.h"
+#include "object.h"
 #include "scanner.h"
 #include <stdint.h>
 
@@ -32,14 +33,23 @@ typedef struct {
   int depth;
 } Local;
 
-typedef struct {
+typedef enum {
+  TYPE_FUNCTION,
+  TYPE_SCRIPT,
+} FunctionType;
+
+typedef struct Compiler {
+  struct Compiler *enclosing;
   Local locals[UINT8_COUNT];
   int localCount;
   int scopeDepth;
+  // function
+  ObjFunction *function;
+  FunctionType type;
 } Compiler;
 
-bool compiler(const char *source, Chunk *chunk);
-static void initCompiler(Compiler *compiler);
+ObjFunction *compiler(const char *source);
+static void initCompiler(Compiler *compiler, FunctionType type);
 static void error(const char *message);
 // static void parsePrecedence(Precedence precedence);
 static void advance();
@@ -49,6 +59,8 @@ static ParseRule *getRule(TokenType type);
 static void literal(bool canAssign);
 static void string(bool canAssign);
 static void variable(bool canAssign);
+static void call(bool canAssign);
+static uint8_t argumentList();
 static void declaration();
 static void statement();
 static bool match(TokenType type);
@@ -76,4 +88,7 @@ static void or_(bool canAssign);
 static void whileStatement();
 static void emitLoop(int loopStart);
 static void forStatement();
+static void funDeclaration();
+static void function(FunctionType type);
+static void returnStatement();
 #endif

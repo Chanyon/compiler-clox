@@ -39,7 +39,8 @@ static int jumpInstruction(const char *name, int sign, Chunk *chunk,
   uint16_t jump = (uint16_t)(chunk->code[offset + 1] << 8);
   jump |= chunk->code[offset + 2];
 
-  printf("%-16s %4d -> %d jump: %d \n", name, offset, offset + 3 + sign * jump, jump);
+  printf("%-16s %4d -> %d jump: %d \n", name, offset, offset + 3 + sign * jump,
+         jump);
   return offset + 3;
 }
 
@@ -102,6 +103,8 @@ uint32_t disassembleInstruction(Chunk *chunk, uint32_t offset) {
     return jumpInstruction("OP_JUMP", 1, chunk, offset);
   case OP_LOOP:
     return jumpInstruction("OP_LOOP", -1, chunk, offset);
+  case OP_CALL:
+    return constantInstruction("OP_CALL", chunk, offset);
   default:
     printf("Unknown opcode %d\n", instruction);
     return offset + 1;

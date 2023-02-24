@@ -30,6 +30,7 @@ typedef enum {
   OP_JUMP_IF_FALSE,
   OP_JUMP,
   OP_LOOP,
+  OP_CALL,
 } Opcode;
 
 // Chunk 保存所有指令
