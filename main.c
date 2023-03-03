@@ -63,9 +63,11 @@ static void runFile(const char *path) {
   free(source);
 
   if (result == INTERPRET_COMPILE_ERROR) {
+    printf("compiler error.");
     exit(-1);
   }
   if (result == INTERPRET_RUNTIME_ERROR) {
+    printf("runtime error.");    
     exit(-1);
   }
 }

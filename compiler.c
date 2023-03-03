@@ -43,6 +43,7 @@ static void initCompiler(Compiler *compiler, FunctionType type) {
   local->depth = 0;
   local->name.start = "";
   local->name.length = 0;
+  local->is_captured = false;
 }
 
 static void addLocal(Token name) {
@@ -54,6 +55,7 @@ static void addLocal(Token name) {
   local.name = name;
   // local.depth = current->scopeDepth;
   local.depth = -1;
+  local.is_captured = false;
   current->locals[current->localCount] = local;
   current->localCount += 1;
 }
@@ -359,7 +361,11 @@ static void endScope() {
   current->scopeDepth -= 1;
   while (current->localCount > 0 &&
          current->locals[current->localCount - 1].depth > current->scopeDepth) {
-    emitByte(OP_POP);
+    if (current->locals[current->localCount - 1].is_captured) {
+      emitByte(OP_CLOSE_UPVALUE);
+    }else{
+      emitByte(OP_POP); 
+    }
     current->localCount -= 1;
   }
 }
@@ -474,10 +480,14 @@ static void function(FunctionType type) {
   consume(TOKEN_RIGHT_PAREN, "expect `)` after function name.");
   consume(TOKEN_LEFT_BRACE, "expect `{` after function name.");
   block();
-  // endScope();bbbba
+  // endScope();
 
   ObjFunction *function = endCompiler();
-  emitBytes(OP_CONSTANT, makeConstant(OBJ_VAL(function)));
+  emitBytes(OP_CLOSURE, makeConstant(OBJ_VAL(function)));
+  for (int i = 0; i < function->upvalue_count; i++) {
+    emitByte(compiler.upvalues[i].is_local ? 1 : 0);
+    emitByte(compiler.upvalues[i].index);
+  }
 }
 
 static void returnStatement() {
@@ -642,9 +652,15 @@ static void variable(bool canAssign) {
     getOp = OP_GET_LOCAL;
     setOp = OP_SET_LOCAL;
   } else {
-    arg = identifierConstant(&parser.previous);
-    getOp = OP_GET_GLOBAL;
-    setOp = OP_SET_GLOBAL;
+    arg = resolveUpValue(current, &parser.previous);
+    if (arg != -1) {
+      getOp = OP_GET_UPVALUE;
+      setOp = OP_SET_UPVALUE;
+    } else {
+      arg = identifierConstant(&parser.previous);
+      getOp = OP_GET_GLOBAL;
+      setOp = OP_SET_GLOBAL;
+    }
   }
 
   if (canAssign && match(TOKEN_EQUAL)) {
@@ -663,6 +679,45 @@ static int resolveLocal(Compiler *compiler, Token *name) {
         error("can't read local variable in it's own initializer.");
       }
       return i;
+    }
+  }
+  return -1;
+}
+
+static int addUpValue(Compiler *compiler, int local_idx, bool is_local) {
+  int upvalue_count = compiler->function->upvalue_count;
+
+  for (int i = 0; i < upvalue_count; i++) {
+    UpValue *upvalue = &compiler->upvalues[i];
+    if (upvalue->index == local_idx && upvalue->is_local == is_local) {
+      return i;
+    }
+  }
+
+  if (upvalue_count == UINT8_COUNT) {
+    error("too many closure variable in function.");
+    return 0;
+  }
+
+  compiler->upvalues[upvalue_count].is_local = is_local;
+  compiler->upvalues[upvalue_count].index = local_idx;
+  compiler->function->upvalue_count += 1;
+
+  return upvalue_count;
+}
+
+static int resolveUpValue(Compiler *compiler, Token *name) {
+  if (compiler->enclosing == NULL) {
+    return -1;
+  }
+  int local_idx = resolveLocal(compiler->enclosing, name);
+  if (local_idx != -1) {
+    compiler->enclosing->locals[local_idx].is_captured = true;
+    return addUpValue(compiler, local_idx, true);
+  } else {
+    int upvalue = resolveUpValue(compiler->enclosing, name);
+    if (upvalue != -1) {
+      return addUpValue(compiler, upvalue, false);
     }
   }
   return -1;

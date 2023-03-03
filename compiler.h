@@ -31,12 +31,18 @@ typedef struct {
 typedef struct {
   Token name;
   int depth;
+  bool is_captured;
 } Local;
 
 typedef enum {
   TYPE_FUNCTION,
   TYPE_SCRIPT,
 } FunctionType;
+
+typedef struct {
+  bool is_local;
+  int index;
+} UpValue;
 
 typedef struct Compiler {
   struct Compiler *enclosing;
@@ -46,6 +52,7 @@ typedef struct Compiler {
   // function
   ObjFunction *function;
   FunctionType type;
+  UpValue upvalues[UINT8_COUNT];
 } Compiler;
 
 ObjFunction *compiler(const char *source);
@@ -91,4 +98,5 @@ static void forStatement();
 static void funDeclaration();
 static void function(FunctionType type);
 static void returnStatement();
+static int resolveUpValue(Compiler *compiler, Token *name);
 #endif

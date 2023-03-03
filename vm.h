@@ -11,7 +11,7 @@
 
 // callFrame 正在执行的函数调用
 typedef struct {
-  ObjFunction *function;
+  ObjClosure *closure;
   // 指令指针
   uint8_t *ip;
   Value *slots;
@@ -25,6 +25,7 @@ typedef struct {
   Obj *objects;
   Table strings; // string interning
   Table globals;
+  ObjUpvalue *open_upvalues;
 } VM;
 
 typedef enum {
@@ -46,6 +47,8 @@ static void runtimeError(const char *format, ...);
 static bool isFalsey(Value value);
 static Value concatenate();
 static bool callValue(Value callee, uint8_t argCount);
-static bool call_(ObjFunction *function, uint8_t argCount);
+static bool call_(ObjClosure *closure, uint8_t argCount);
 static void defineNative(const char *name, NativeFn function);
+static ObjUpvalue* captureUpvalue(Value* local);
+static void closeUpvalues(Value *last);
 #endif
