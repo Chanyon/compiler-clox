@@ -20,4 +20,12 @@
 // 申请内存空间
 void *reallocate(void *pointer, size_t oldSize, size_t newSize);
 void freeObjects();
+void collectGarbage();
+static void markRoots();
+void markValue(Value value);
+void markObject(Obj* object);
+static void traceReferences();
+static void blackenObject(Obj *obj);
+static void markArray(ValueArray *array);
+static void sweep();
 #endif

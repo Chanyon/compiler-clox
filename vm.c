@@ -28,6 +28,12 @@ void initVM() {
   initTable(&vm.strings);
   initTable(&vm.globals);
   defineNative("clock", clockNative);
+  // GC
+  vm.gray_count = 0;
+  vm.gray_capacity = 0;
+  vm.gray_stack = NULL;
+  vm.bytes_allocated = 0;
+  vm.next_gc = 1024 * 1024;
 }
 
 void freeVM() {
@@ -253,7 +259,6 @@ static InterpretResult run() {
     case OP_CLOSURE:
       ObjFunction *function = AS_FUNCTION(READ_CONSTANT());
       ObjClosure *closure = newClosure(function);
-      push(OBJ_VAL(closure));
 
       for (int i = 0; i < closure->upvalue_count; i++) {
         uint8_t is_local = READ_BYTE();
@@ -264,6 +269,7 @@ static InterpretResult run() {
           closure->upvalues[i] = frame->closure->upvalues[idx];
         }
       }
+      push(OBJ_VAL(closure));
       break;
     case OP_SET_UPVALUE:
       uint8_t _slot = READ_BYTE();
@@ -378,19 +384,20 @@ static bool isFalsey(Value value) {
 
 // 字符串连接
 static Value concatenate() {
-  ObjString *bstring = AS_STRING(pop());
-  ObjString *astring = AS_STRING(pop());
+  ObjString *bstring = AS_STRING(peek(0));
+  ObjString *astring = AS_STRING(peek(1));
   int length = astring->length + bstring->length;
   char *headChars = ALLOCATE(char, length + 1);
   memcpy(headChars, astring->chars, astring->length);
   memcpy(headChars + astring->length, bstring->chars, bstring->length);
   headChars[length] = '\0';
   ObjString *result = takeString(headChars, length);
+  pop();pop();
   return OBJ_VAL(result);
 }
 
 static bool call_(ObjClosure *closure, uint8_t argCount) {
-  if (closure->function->arity != argCount) {
+  if (argCount != closure->function->arity) {
     runtimeError("expect %d arguments but got %d.", closure->function->arity,
                  argCount);
     return false;

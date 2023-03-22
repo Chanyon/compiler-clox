@@ -1,6 +1,7 @@
 #include "compiler.h"
 #include "chunk.h"
 #include "common.h"
+#include "memory.h"
 #include "object.h"
 #include "scanner.h"
 #include "value.h"
@@ -361,10 +362,11 @@ static void endScope() {
   current->scopeDepth -= 1;
   while (current->localCount > 0 &&
          current->locals[current->localCount - 1].depth > current->scopeDepth) {
+    // bug?
     if (current->locals[current->localCount - 1].is_captured) {
       emitByte(OP_CLOSE_UPVALUE);
-    }else{
-      emitByte(OP_POP); 
+    } else {
+      emitByte(OP_POP);
     }
     current->localCount -= 1;
   }
@@ -478,9 +480,9 @@ static void function(FunctionType type) {
     } while (match(TOKEN_COMMA));
   }
   consume(TOKEN_RIGHT_PAREN, "expect `)` after function name.");
+  endScope();
   consume(TOKEN_LEFT_BRACE, "expect `{` after function name.");
   block();
-  // endScope();
 
   ObjFunction *function = endCompiler();
   emitBytes(OP_CLOSURE, makeConstant(OBJ_VAL(function)));
@@ -645,22 +647,24 @@ static void string(bool canAssign) {
 
 // identifier parse
 static void variable(bool canAssign) {
+  namedVariable(parser.previous, canAssign);
+}
+
+static void namedVariable(Token name, bool canAssign) {
   uint8_t getOp, setOp;
-  int arg = resolveLocal(current, &parser.previous);
+  int arg = resolveLocal(current, &name);
 
   if (arg != -1) {
     getOp = OP_GET_LOCAL;
     setOp = OP_SET_LOCAL;
+  } else if ((arg = resolveUpValue(current, &name)) != -1) {
+    //! bug local
+    getOp = OP_GET_UPVALUE;
+    setOp = OP_SET_UPVALUE;
   } else {
-    arg = resolveUpValue(current, &parser.previous);
-    if (arg != -1) {
-      getOp = OP_GET_UPVALUE;
-      setOp = OP_SET_UPVALUE;
-    } else {
-      arg = identifierConstant(&parser.previous);
-      getOp = OP_GET_GLOBAL;
-      setOp = OP_SET_GLOBAL;
-    }
+    arg = identifierConstant(&name);
+    getOp = OP_GET_GLOBAL;
+    setOp = OP_SET_GLOBAL;
   }
 
   if (canAssign && match(TOKEN_EQUAL)) {
@@ -672,6 +676,7 @@ static void variable(bool canAssign) {
 }
 
 static int resolveLocal(Compiler *compiler, Token *name) {
+
   for (int i = current->localCount - 1; i >= 0; i--) {
     Local *local = &compiler->locals[i];
     if (identifierEqual(name, &local->name)) {
@@ -681,10 +686,12 @@ static int resolveLocal(Compiler *compiler, Token *name) {
       return i;
     }
   }
+
   return -1;
 }
 
-static int addUpValue(Compiler *compiler, int local_idx, bool is_local) {
+//! bug
+static int addUpValue(Compiler *compiler, uint8_t local_idx, bool is_local) {
   int upvalue_count = compiler->function->upvalue_count;
 
   for (int i = 0; i < upvalue_count; i++) {
@@ -701,25 +708,26 @@ static int addUpValue(Compiler *compiler, int local_idx, bool is_local) {
 
   compiler->upvalues[upvalue_count].is_local = is_local;
   compiler->upvalues[upvalue_count].index = local_idx;
-  compiler->function->upvalue_count += 1;
 
-  return upvalue_count;
+  return compiler->function->upvalue_count++;
 }
 
 static int resolveUpValue(Compiler *compiler, Token *name) {
+  //! bug here.
   if (compiler->enclosing == NULL) {
     return -1;
   }
   int local_idx = resolveLocal(compiler->enclosing, name);
   if (local_idx != -1) {
     compiler->enclosing->locals[local_idx].is_captured = true;
-    return addUpValue(compiler, local_idx, true);
-  } else {
-    int upvalue = resolveUpValue(compiler->enclosing, name);
-    if (upvalue != -1) {
-      return addUpValue(compiler, upvalue, false);
-    }
+    return addUpValue(compiler, (uint8_t)local_idx, true);
   }
+
+  int upvalue = resolveUpValue(compiler->enclosing, name);
+  if (upvalue != -1) {
+    return addUpValue(compiler, (uint8_t)upvalue, false);
+  }
+
   return -1;
 }
 
@@ -761,6 +769,16 @@ static uint8_t argumentList() {
   }
   consume(TOKEN_RIGHT_PAREN, "expect `)` after arguments.");
   return argCount;
+}
+
+void markCompilerRoots() {
+  Compiler *compiler = current;
+  printf("====compiler start====\n");
+  while (compiler != NULL) {
+    markObject((Obj *)compiler->function);
+    compiler = compiler->enclosing;
+  }
+  printf("====compiler end====\n");
 }
 
 ObjFunction *compiler(const char *source) {

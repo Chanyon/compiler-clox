@@ -35,6 +35,15 @@
 //
 // print 1;
 
+// {
+// var a = 2;
+// fun tt(){
+//   var a = 1;
+//   print a;
+// }
+// tt();
+// }
+
 // fun foo (d){
 //     print d;
 // }
@@ -61,22 +70,21 @@
 // }
 
 // var start = clock();
-// print fib(3);
+// print fib(5);
 // print (clock() - start);
 
 // 闭包
 // var x = "global";
 // fun outer() {
-//   var x = "outer";
+//   var y = "outer";
 //   fun inner() {
-//     print x;
+//     y = x;
+//     print y;
 //   }
 //   inner();
 // }
 // outer();
 
-// undfined variable `x`.
-// error: [line 81] in closure()
 // fun makeClosure() {
 //     var x = "local";
 //     fun closure(){
@@ -88,6 +96,14 @@
 // var closure = makeClosure();
 // closure();
 
+//! bug: undfined variable `value`
+// == makeClosure ==
+// 0000 line:100  opcode:OP_POP
+// 0001 line:103  opcode:OP_CLOSURE       constant_idx:1 <fn closure>
+// 0004   |     opcode:OP_CONSTANT      opcode_index:4 constant_index:17 "true"
+// 0006   |     opcode:OP_ADD
+// 0007   |     opcode:OP_RETURN
+// 0008 line:105  opcode:OP_NIL
 // fun makeClosure(value) {
 //   fun closure() {
 //     print value;
@@ -123,3 +139,6 @@
 //   inner();
 // }
 // outer();
+
+var y = "123";
+print y;

@@ -1,6 +1,7 @@
 #include "chunk.h"
 #include "memory.h"
 #include "value.h"
+#include "vm.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -38,8 +39,9 @@ void freeChunk(Chunk *chunk) {
 }
 
 uint32_t addConstant(Chunk *chunk, Value value) {
+  push(value); //GC
   writeVlaueArray(&chunk->constants, value);
-
+  pop(); //GC
   // 返回常量在常量池的index
   return chunk->constants.count - 1;
 }

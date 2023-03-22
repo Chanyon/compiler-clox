@@ -98,5 +98,8 @@ static void forStatement();
 static void funDeclaration();
 static void function(FunctionType type);
 static void returnStatement();
+static void namedVariable(Token name, bool canAssign);
+static int addUpValue(Compiler *compiler, uint8_t local_idx, bool is_local);
 static int resolveUpValue(Compiler *compiler, Token *name);
+void markCompilerRoots();
 #endif
