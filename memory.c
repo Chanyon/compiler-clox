@@ -2,6 +2,7 @@
 #include "chunk.h"
 #include "compiler.h"
 #include "object.h"
+#include "table.h"
 #include "value.h"
 #include "vm.h"
 #include <stdbool.h>
@@ -60,6 +61,9 @@ void freeObject(Obj *object) {
   case OBJ_UPVALUE:
     ty = "OBJ_UPVALUE";
     break;
+  default:
+    ty = "Other";
+    break;    
   }
   printf("--- %p free type %s\n", (void *)object, ty);
 #endif
@@ -85,6 +89,15 @@ void freeObject(Obj *object) {
     break;
   case OBJ_UPVALUE:
     FREE(ObjUpvalue, object);
+    break;
+  case OBJ_CLASS:
+    FREE(ObjClass, object);
+    break;
+  case OBJ_INSTANCE:
+    ObjInstance *instance = (ObjInstance *)object;
+    freeTable(&instance->fields);
+    FREE(ObjInstance, object);
+    break;
   }
 }
 
@@ -182,6 +195,15 @@ static void blackenObject(Obj *obj) {
       markObject((Obj *)closure->upvalues[i]);
     }
     break;
+  case OBJ_CLASS:
+    ObjClass *kclass = (ObjClass *)obj;
+    markObject((Obj *)kclass->name);
+    break;
+  case OBJ_INSTANCE:
+    ObjInstance *instance = (ObjInstance *)obj;
+    markObject((Obj *)instance->kclass);
+    markTable(&instance->fields);
+    break;
   }
 }
 
@@ -220,7 +242,7 @@ static void sweep() {
 void collectGarbage() {
 #ifdef DEBUG_LOG_GC
   printf("--- gc begin\n");
-  size_t before = vm.bytes_allocated;
+  // size_t before = vm.bytes_allocated;
 #endif
   //
   markRoots();
@@ -230,7 +252,7 @@ void collectGarbage() {
   vm.next_gc = vm.bytes_allocated * GC_HEAP_GROW_FACTOR;
 #ifdef DEBUG_LOG_GC
   printf("--- gc end\n");
-  printf("==== collected %zu bytes (from %zu to %zu) next at %zu ====\n",
-         (before - vm.bytes_allocated), before, vm.bytes_allocated, vm.next_gc);
+  // printf("==== collected %zu bytes (from %zu to %zu) next at %zu ====\n",
+  // (before - vm.bytes_allocated), before, vm.bytes_allocated, vm.next_gc);
 #endif
 }

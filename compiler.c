@@ -242,6 +242,8 @@ static void declaration() {
     varDeclaration();
   } else if (match(TOKEN_FUN)) {
     funDeclaration();
+  } else if (match(TOKEN_CLASS)) {
+    classDeclaration();
   } else {
     statement();
   }
@@ -492,6 +494,18 @@ static void function(FunctionType type) {
   }
 }
 
+static void classDeclaration() {
+  consume(TOKEN_IDENTIFIER, "expect class name.");
+  uint8_t nameConstant = identifierConstant(&parser.previous);
+  declareVariable();
+  
+  emitBytes(OP_CLASS, nameConstant);
+  defineVariable(nameConstant); // 在主体之前定义,用户就可以在类自己的方法主体中引用类本身
+  
+  consume(TOKEN_LEFT_BRACE, "expect `{` before class body.");
+  consume(TOKEN_RIGHT_BRACE, "expect `}` after class body.");
+}
+
 static void returnStatement() {
   // 在任何函数之外使用return都会报错
   if (current->type == TYPE_SCRIPT) {
@@ -545,7 +559,7 @@ ParseRule rules[] = {
     [TOKEN_LEFT_BRACE] = {NULL, NULL, PREC_NONE},
     [TOKEN_RIGHT_BRACE] = {NULL, NULL, PREC_NONE},
     [TOKEN_COMMA] = {NULL, NULL, PREC_NONE},
-    [TOKEN_DOT] = {NULL, NULL, PREC_NONE},
+    [TOKEN_DOT] = {NULL, dot, PREC_PRIMARY},
     [TOKEN_BANG] = {unary, NULL, PREC_NONE},
     [TOKEN_BANG_EQUAL] = {NULL, binary, PREC_EQUALITY},
     [TOKEN_EQUAL] = {NULL, NULL, PREC_NONE},
@@ -750,6 +764,18 @@ static void or_(bool canAssign) {
   patchJump(endJump);
 }
 
+static void dot(bool canAssign) {
+  consume(TOKEN_IDENTIFIER, "expect property name after `.`.");
+  uint8_t nameCanstant = identifierConstant(&parser.previous);
+  
+  if (canAssign && match(TOKEN_EQUAL)) {
+    expression();
+    emitBytes(OP_SET_PROPERTY, nameCanstant);
+  } else {
+    emitBytes(OP_GET_PROPERTY, nameCanstant);
+  }
+}
+
 // foo(1,2);
 static void call(bool canAssign) {
   uint8_t argCount = argumentList();
@@ -773,12 +799,12 @@ static uint8_t argumentList() {
 
 void markCompilerRoots() {
   Compiler *compiler = current;
-  printf("====compiler start====\n");
+  // printf("====compiler start====\n");
   while (compiler != NULL) {
     markObject((Obj *)compiler->function);
     compiler = compiler->enclosing;
   }
-  printf("====compiler end====\n");
+  // printf("====compiler end====\n");
 }
 
 ObjFunction *compiler(const char *source) {

@@ -283,6 +283,37 @@ static InterpretResult run() {
       closeUpvalues(vm.stackTop - 1);
       pop();
       break;
+    case OP_CLASS:
+      push(OBJ_VAL(newClass(READ_STRING())));
+      break;
+    case OP_SET_PROPERTY:
+      if (!IS_INSTANCE(peek(1))) {
+        runtimeError("only instance have fields.");
+        return INTERPRET_RUNTIME_ERROR;
+      }
+      ObjInstance *ins = AS_INSTANCE(peek(1));
+      tableSet(&ins->fields, READ_STRING(), peek(0));
+      Value value_s = pop();
+      pop(); // instance
+      push(value_s);
+      break;
+    case OP_GET_PROPERTY:
+      if (!IS_INSTANCE(peek(0))) {
+        runtimeError("only instance have properties.");
+        return INTERPRET_RUNTIME_ERROR;
+      }
+      ObjInstance *instance = AS_INSTANCE(peek(0));
+      ObjString *name = READ_STRING(); // property name.
+
+      Value value_c;
+      if (tableGet(&instance->fields, name, &value_c)) {
+        pop(); // instance
+        push(value_c);
+        break;
+      } else {
+        runtimeError("undefined property `%s`.", name->chars);
+        return INTERPRET_RUNTIME_ERROR;
+      }
     case OP_RETURN: {
       Value res = pop();
       closeUpvalues(frame->slots);
@@ -392,7 +423,8 @@ static Value concatenate() {
   memcpy(headChars + astring->length, bstring->chars, bstring->length);
   headChars[length] = '\0';
   ObjString *result = takeString(headChars, length);
-  pop();pop();
+  pop();
+  pop();
   return OBJ_VAL(result);
 }
 
@@ -428,6 +460,10 @@ static bool callValue(Value callee, uint8_t argCount) {
       return true;
     case OBJ_CLOSURE:
       return call_(AS_CLOSURE(callee), argCount);
+    case OBJ_CLASS:
+      ObjClass *kclass = AS_CLASS(callee);
+      vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(kclass));
+      return true;
     default:
       break;
     }

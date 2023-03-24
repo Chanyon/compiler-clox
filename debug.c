@@ -106,7 +106,7 @@ uint32_t disassembleInstruction(Chunk *chunk, uint32_t offset) {
   case OP_LOOP:
     return jumpInstruction("OP_LOOP", -1, chunk, offset);
   case OP_CALL:
-    return constantInstruction("OP_CALL", chunk, offset);
+    return simpleInstruction("OP_CALL", offset);
   case OP_CLOSURE:
     int i = offset;
     uint8_t constant_idx = chunk->code[i + 1];
@@ -128,6 +128,12 @@ uint32_t disassembleInstruction(Chunk *chunk, uint32_t offset) {
     return constantInstruction("OP_GET_UPVALUE", chunk, offset);
   case OP_CLOSE_UPVALUE:
     return simpleInstruction("OP_CLOSE_UPVALUE", offset);
+  case OP_CLASS:
+    return constantInstruction("OP_CLASS", chunk, offset);
+  case OP_SET_PROPERTY:
+    return constantInstruction("OP_SET_PROPERTY", chunk, offset);
+  case OP_GET_PROPERTY:
+    return constantInstruction("OP_GET_PROPERTY", chunk, offset);    
   default:
     printf("Unknown opcode %d\n", instruction);
     return offset + 1;

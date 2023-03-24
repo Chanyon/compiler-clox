@@ -17,6 +17,8 @@ typedef struct ObjFunction ObjFunction;
 typedef struct ObjNative ObjNative;
 typedef struct ObjClosure ObjClosure;
 typedef struct ObjUpvalue ObjUpvalue;
+typedef struct ObjClass ObjClass;
+typedef struct ObjInstance ObjInstance;
 
 // 值类型
 typedef struct {

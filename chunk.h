@@ -35,6 +35,9 @@ typedef enum {
   OP_GET_UPVALUE,
   OP_SET_UPVALUE,
   OP_CLOSE_UPVALUE,
+  OP_CLASS,
+  OP_SET_PROPERTY,
+  OP_GET_PROPERTY,
 } Opcode;
 
 // Chunk 保存所有指令

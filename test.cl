@@ -142,3 +142,18 @@
 
 var y = "123";
 print y;
+
+class Ani {}
+print Ani;
+print Ani();
+
+// error case
+// var obj = "not an instance";
+// print obj.field;
+
+class Test {}
+var test = Test();
+test.foo = 1;
+test.bar = 2;
+print test.foo + test.bar;
+

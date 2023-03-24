@@ -33,8 +33,11 @@ static Obj *allocateObject(size_t size, ObjType type) {
   case 3:
     ty = "OBJ_CLOSURE";
     break;
-  default:
+  case 4:
     ty = "OBJ_UPVALUE";
+    break;
+  default:
+    ty = "Other";
     break;
   }
   printf("--- %p allocate %zu for %s\n", (void *)object, size, ty);
@@ -47,7 +50,7 @@ ObjString *allocateString(char *chars, int length, uint32_t hash) {
   string->length = length;
   string->chars = chars;
   string->hash = hash;
-  push(OBJ_VAL(string)); //GC
+  push(OBJ_VAL(string)); // GC
   tableSet(&vm.strings, string, NIL_VAL);
   pop();
   return string;
@@ -102,6 +105,12 @@ void printObject(Value value) {
   case OBJ_UPVALUE:
     printf("upvalue");
     break;
+  case OBJ_CLASS:
+    printf("class %s", AS_CLASS(value)->name->chars);
+    break;
+  case OBJ_INSTANCE:
+    printf("%s instance",AS_INSTANCE(value)->kclass->name->chars);
+    break;
   }
 }
 
@@ -148,4 +157,17 @@ ObjUpvalue *newUpvalue(Value *slot) {
   upvalue->next = NULL;
   upvalue->closed = NIL_VAL;
   return upvalue;
+}
+
+ObjClass *newClass(ObjString *name) {
+  ObjClass *class = ALLOCATE_OBJ(ObjClass, OBJ_CLASS);
+  class->name = name;
+  return class;
+}
+
+ObjInstance *newInstance(ObjClass *kclass) {
+  ObjInstance *instance = ALLOCATE_OBJ(ObjInstance, OBJ_INSTANCE);
+  instance->kclass = kclass;
+  initTable(&instance->fields);
+  return instance;
 }
