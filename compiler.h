@@ -37,6 +37,8 @@ typedef struct {
 typedef enum {
   TYPE_FUNCTION,
   TYPE_SCRIPT,
+  TYPE_METHOD,
+  TYPE_INITIALIZER,
 } FunctionType;
 
 typedef struct {
@@ -54,6 +56,10 @@ typedef struct Compiler {
   FunctionType type;
   UpValue upvalues[UINT8_COUNT];
 } Compiler;
+
+typedef struct ClassCompiler {
+  struct ClassCompiler *enclosing;
+} ClassCompiler;
 
 ObjFunction *compiler(const char *source);
 static void initCompiler(Compiler *compiler, FunctionType type);
@@ -100,6 +106,8 @@ static void funDeclaration();
 static void function(FunctionType type);
 static void returnStatement();
 static void classDeclaration();
+static void method();
+static void this_(bool canAssign);
 static void namedVariable(Token name, bool canAssign);
 static int addUpValue(Compiler *compiler, uint8_t local_idx, bool is_local);
 static int resolveUpValue(Compiler *compiler, Token *name);

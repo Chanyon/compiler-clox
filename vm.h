@@ -22,7 +22,7 @@ typedef struct {
   int frameCount;
   Value stack[STACK_MAX]; // VM stack
   Value *stackTop;
-  Obj *objects; //GC
+  Obj *objects;  // GC
   Table strings; // string interning
   Table globals;
   ObjUpvalue *open_upvalues;
@@ -30,8 +30,10 @@ typedef struct {
   int gray_count;
   int gray_capacity;
   Obj **gray_stack;
-  size_t bytes_allocated; //托管内存
-  size_t next_gc; //触发下一次GC
+  size_t bytes_allocated; // 托管内存
+  size_t next_gc;         // 触发下一次GC
+  // class
+  ObjString *init_string;
 } VM;
 
 typedef enum {
@@ -53,6 +55,7 @@ static void runtimeError(const char *format, ...);
 static bool isFalsey(Value value);
 static Value concatenate();
 static bool callValue(Value callee, uint8_t argCount);
+static bool invoke(ObjString *method_name, uint8_t args);
 static bool call_(ObjClosure *closure, uint8_t argCount);
 static void defineNative(const char *name, NativeFn function);
 static ObjUpvalue *captureUpvalue(Value *local);

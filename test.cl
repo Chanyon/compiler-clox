@@ -140,20 +140,65 @@
 // }
 // outer();
 
-var y = "123";
-print y;
+// var y = "123";
+// print y;
 
-class Ani {}
-print Ani;
-print Ani();
+// class Ani {}
+// print Ani;
+// print Ani();
 
 // error case
 // var obj = "not an instance";
 // print obj.field;
 
-class Test {}
-var test = Test();
-test.foo = 1;
-test.bar = 2;
-print test.foo + test.bar;
+// class Test {}
+// var test = Test();
+// test.foo = 1;
+// test.bar = 2;
+// print test.foo + test.bar;
+
+// class Cat {
+//     run() {
+//         print 3;
+//     }
+// }
+// print Cat;
+// print Cat();
+
+// class Brunch {
+//     eggs() {
+//         return 1;
+//     }
+// }
+
+// var brunch = Brunch();
+// var eggs = brunch.eggs;
+// print eggs();
+
+class Scone {
+  init() { 
+    this.foo = 2;
+  }
+  topping() {
+    print "scone with " + first + " and " + second;
+  }
+  // bug !
+  // topping(first , second) {
+  //   print "scone with " + first + " and " + second;
+  // }
+  method() {
+      // bug!
+      // fun fn() {
+      //     print this;
+      // }
+      // fn();
+      return this;
+  }
+}
+
+var first = "berries";
+var second = "cream";
+var scone = Scone();
+scone.topping();
+print scone.foo;
 

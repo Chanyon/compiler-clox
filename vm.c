@@ -22,6 +22,26 @@ static Value clockNative(uint8_t argCount, Value *args) {
   return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
 
+// binding method
+static void defineMethod(ObjString *name) {
+  Value method = peek(0);
+  ObjClass *kclass = AS_CLASS(peek(1));
+  tableSet(&kclass->methods, name, method);
+  pop();
+}
+
+static bool bindMethod(ObjClass *kclass, ObjString *name) {
+  Value method;
+  if (!tableGet(&kclass->methods, name, &method)) {
+    runtimeError("undefined property `%s`", name->chars);
+    return false;
+  }
+  ObjBoundMethod *bound = newBoundMethod(peek(0), AS_CLOSURE(method));
+  pop();
+  push(OBJ_VAL(bound));
+  return true;
+}
+
 void initVM() {
   resetStack();
   vm.objects = NULL;
@@ -34,11 +54,15 @@ void initVM() {
   vm.gray_stack = NULL;
   vm.bytes_allocated = 0;
   vm.next_gc = 1024 * 1024;
+
+  vm.init_string = NULL;
+  vm.init_string = copyString("init", 4);
 }
 
 void freeVM() {
   freeTable(&vm.strings);
   freeTable(&vm.globals);
+  vm.init_string = NULL;
   freeObjects();
 }
 
@@ -310,10 +334,22 @@ static InterpretResult run() {
         pop(); // instance
         push(value_c);
         break;
-      } else {
-        runtimeError("undefined property `%s`.", name->chars);
+      }
+      if (!bindMethod(instance->kclass, name)) {
         return INTERPRET_RUNTIME_ERROR;
       }
+      break;
+    case OP_METHOD:
+      defineMethod(READ_STRING());
+      break;
+    case OP_INVOKE:
+      ObjString *method_name = READ_STRING();
+      uint8_t args = READ_BYTE();
+      if (!invoke(method_name, args)) {
+        return INTERPRET_RUNTIME_ERROR;
+      }
+      frame = &vm.frames[vm.frameCount - 1];
+      break;
     case OP_RETURN: {
       Value res = pop();
       closeUpvalues(frame->slots);
@@ -463,13 +499,41 @@ static bool callValue(Value callee, uint8_t argCount) {
     case OBJ_CLASS:
       ObjClass *kclass = AS_CLASS(callee);
       vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(kclass));
+      Value initializer;
+      if (tableGet(&kclass->methods, vm.init_string, &initializer)) {
+        return call_(AS_CLOSURE(initializer), argCount);
+      } else if (argCount != 0) {
+        runtimeError("expected 0 argments but got %d.", argCount);
+        return false;
+      }
       return true;
+    case OBJ_BOUND_METHOD:
+      ObjBoundMethod *bound = AS_BOUND_METHOD(callee);
+      vm.stackTop[-argCount - 1] = bound->receiver;
+
+      return call_(bound->method, argCount);
     default:
       break;
     }
   }
   runtimeError("can only call function and classes.");
   return false;
+}
+
+static bool invoke(ObjString *method_name, uint8_t args) {
+  Value receiver = peek(0);
+  if (!IS_INSTANCE(receiver)) {
+    runtimeError("only instances have methods.");
+    return false;
+  }
+  ObjInstance *ins = AS_INSTANCE(receiver);
+
+  Value method;
+  if (!tableGet(&ins->kclass->methods, method_name, &method)) {
+    runtimeError("undefined property `%s`.", method_name->chars);
+    return false;
+  }
+  return call_(AS_CLOSURE(method), args);
 }
 
 static void defineNative(const char *name, NativeFn function) {

@@ -28,6 +28,17 @@ static uint32_t constantInstruction(const char *name, Chunk *chunk,
   return offset + 2; // 下一条指令起始位置的偏移量
 }
 
+static uint32_t invokeInstruction(const char *name, Chunk *chunk,
+                                  uint32_t offset) {
+  uint8_t constant_idx = chunk->code[offset + 1];
+  uint8_t arg_count = chunk->code[offset + 2];
+  printf("opcode:%-16s (%d args) constant_idx:%4d `", name, arg_count,
+         constant_idx);
+  printValue(chunk->constants.values[constant_idx]);
+  printf("`\n");
+  return offset + 3; // 下一条指令起始位置的偏移量
+}
+
 static uint32_t localInstruction(const char *name, Chunk *chunk,
                                  uint32_t offset) {
   uint8_t slot = chunk->code[offset + 1];
@@ -133,7 +144,11 @@ uint32_t disassembleInstruction(Chunk *chunk, uint32_t offset) {
   case OP_SET_PROPERTY:
     return constantInstruction("OP_SET_PROPERTY", chunk, offset);
   case OP_GET_PROPERTY:
-    return constantInstruction("OP_GET_PROPERTY", chunk, offset);    
+    return constantInstruction("OP_GET_PROPERTY", chunk, offset);
+  case OP_METHOD:
+    return constantInstruction("OP_METHOD", chunk, offset);
+  case OP_INVOKE:
+    return invokeInstruction("OP_INVOKE", chunk, offset);
   default:
     printf("Unknown opcode %d\n", instruction);
     return offset + 1;
