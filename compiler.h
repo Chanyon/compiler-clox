@@ -59,6 +59,7 @@ typedef struct Compiler {
 
 typedef struct ClassCompiler {
   struct ClassCompiler *enclosing;
+  bool has_super_class;
 } ClassCompiler;
 
 ObjFunction *compiler(const char *source);
@@ -108,6 +109,7 @@ static void returnStatement();
 static void classDeclaration();
 static void method();
 static void this_(bool canAssign);
+static void super_(bool canAssign);
 static void namedVariable(Token name, bool canAssign);
 static int addUpValue(Compiler *compiler, uint8_t local_idx, bool is_local);
 static int resolveUpValue(Compiler *compiler, Token *name);

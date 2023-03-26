@@ -350,6 +350,38 @@ static InterpretResult run() {
       }
       frame = &vm.frames[vm.frameCount - 1];
       break;
+    case OP_INHERIT:
+      Value super_calss = peek(1);
+      if (!IS_CLASS(super_calss)) {
+        runtimeError("superClass must be a class.");
+        return INTERPRET_RUNTIME_ERROR;
+      }
+
+      ObjClass *subclass = AS_CLASS(peek(0));
+      tableAddAll(&AS_CLASS(super_calss)->methods, &subclass->methods);
+      pop();
+      break;
+    case OP_GET_SUPER:
+      ObjString *super_method_name = READ_STRING();
+      ObjClass *superclass = AS_CLASS(pop());
+      if (!bindMethod(superclass, super_method_name)) {
+        return INTERPRET_RUNTIME_ERROR;
+      }
+      break;
+    case OP_SUPER_INVOKE:
+      ObjString *super_name = READ_STRING();
+      uint8_t arguments = READ_BYTE();
+      ObjClass *super_class = AS_CLASS(pop());
+
+      Value super_method;
+      if (!tableGet(&super_class->methods, super_name, &super_method)) {
+        runtimeError("undefined superclass method `%s`.", super_name->chars);
+        return INTERPRET_RUNTIME_ERROR;
+      } else {
+        call_(AS_CLOSURE(super_method), arguments);
+      }
+      frame = &vm.frames[vm.frameCount - 1];
+      break;
     case OP_RETURN: {
       Value res = pop();
       closeUpvalues(frame->slots);

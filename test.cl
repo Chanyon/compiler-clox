@@ -200,10 +200,20 @@ class Scone {
   }
 }
 
-var first = "berries";
-var second = "cream";
-var scone = Scone();
-scone.topping();
+// var first = "berries";
+// var second = "cream";
+// var scone = Scone();
+// scone.topping();
 // print scone.foo;
-scone.bar();
+// scone.bar();
 
+class Child < Scone {
+  test() {
+    // bug!
+    // opcode:OP_GET_GLOBAL    opcode_index:2 constant_index:1 "super"
+    // undfined variable `super`.
+    // super.topping();
+    print 1;
+  }
+}
+Child().test();
