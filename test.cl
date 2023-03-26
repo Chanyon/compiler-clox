@@ -178,6 +178,10 @@
 class Scone {
   init() { 
     this.foo = 2;
+    fun bar(){
+      print "not a method.";
+    }
+    this.bar = bar;
   }
   topping() {
     print "scone with " + first + " and " + second;
@@ -200,5 +204,6 @@ var first = "berries";
 var second = "cream";
 var scone = Scone();
 scone.topping();
-print scone.foo;
+// print scone.foo;
+scone.bar();
 

@@ -521,12 +521,19 @@ static bool callValue(Value callee, uint8_t argCount) {
 }
 
 static bool invoke(ObjString *method_name, uint8_t args) {
-  Value receiver = peek(0);
+  Value receiver = peek(args);
   if (!IS_INSTANCE(receiver)) {
     runtimeError("only instances have methods.");
     return false;
   }
   ObjInstance *ins = AS_INSTANCE(receiver);
+
+  //! this.bar = fun
+  Value fn;
+  if (tableGet(&ins->fields, method_name, &fn)) {
+    vm.stackTop[-args - 1] = fn;
+    return callValue(fn, args);
+  }
 
   Value method;
   if (!tableGet(&ins->kclass->methods, method_name, &method)) {
