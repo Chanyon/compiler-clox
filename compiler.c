@@ -495,9 +495,9 @@ static void function(FunctionType type) {
     } while (match(TOKEN_COMMA));
   }
   consume(TOKEN_RIGHT_PAREN, "expect `)` after function name.");
-  endScope();
   consume(TOKEN_LEFT_BRACE, "expect `{` after function name.");
   block();
+  endScope();
 
   ObjFunction *function = endCompiler();
   emitBytes(OP_CLOSURE, makeConstant(OBJ_VAL(function)));
@@ -775,14 +775,16 @@ static void namedVariable(Token name, bool canAssign) {
   if (arg != -1) {
     getOp = OP_GET_LOCAL;
     setOp = OP_SET_LOCAL;
-  } else if ((arg = resolveUpValue(current, &name)) != -1) {
-    //! bug local
-    getOp = OP_GET_UPVALUE;
-    setOp = OP_SET_UPVALUE;
   } else {
-    arg = identifierConstant(&name);
-    getOp = OP_GET_GLOBAL;
-    setOp = OP_SET_GLOBAL;
+    arg = resolveUpValue(current, &name);
+    if ((arg != -1)) {
+      getOp = OP_GET_UPVALUE;
+      setOp = OP_SET_UPVALUE;
+    } else {
+      arg = identifierConstant(&name);
+      getOp = OP_GET_GLOBAL;
+      setOp = OP_SET_GLOBAL;
+    }
   }
 
   if (canAssign && match(TOKEN_EQUAL)) {
@@ -794,12 +796,11 @@ static void namedVariable(Token name, bool canAssign) {
 }
 
 static int resolveLocal(Compiler *compiler, Token *name) {
-
-  for (int i = current->localCount - 1; i >= 0; i--) {
+  for (int i = compiler->localCount - 1; i >= 0; i--) {
     Local *local = &compiler->locals[i];
     if (identifierEqual(name, &local->name)) {
       if (local->depth == -1) {
-        error("can't read local variable in it's own initializer.");
+        error("Can't read local variable in its own initializer.");
       }
       return i;
     }
@@ -808,7 +809,6 @@ static int resolveLocal(Compiler *compiler, Token *name) {
   return -1;
 }
 
-//! bug
 static int addUpValue(Compiler *compiler, uint8_t local_idx, bool is_local) {
   int upvalue_count = compiler->function->upvalue_count;
 
@@ -823,21 +823,23 @@ static int addUpValue(Compiler *compiler, uint8_t local_idx, bool is_local) {
     error("too many closure variable in function.");
     return 0;
   }
-
+  // printf("up index==> %d\n", local_idx);
   compiler->upvalues[upvalue_count].is_local = is_local;
   compiler->upvalues[upvalue_count].index = local_idx;
-
-  return compiler->function->upvalue_count++;
+  compiler->function->upvalue_count += 1;
+  return upvalue_count;
 }
 
 static int resolveUpValue(Compiler *compiler, Token *name) {
-  //! bug here.
   if (compiler->enclosing == NULL) {
     return -1;
   }
+
   int local_idx = resolveLocal(compiler->enclosing, name);
+  
   if (local_idx != -1) {
     compiler->enclosing->locals[local_idx].is_captured = true;
+    // printf("outer local idx: %d\n",local_idx);
     return addUpValue(compiler, (uint8_t)local_idx, true);
   }
 

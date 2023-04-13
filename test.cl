@@ -73,17 +73,16 @@
 // print fib(5);
 // print (clock() - start);
 
-// 闭包
-// var x = "global";
-// fun outer() {
-//   var y = "outer";
-//   fun inner() {
-//     y = x;
-//     print y;
+//闭包
+// var y = "global";
+// fun foo() {
+//     var x = y;
+//   fun bar() {
+//     print x;
 //   }
-//   inner();
+//   bar();
 // }
-// outer();
+// foo();
 
 // fun makeClosure() {
 //     var x = "local";
@@ -96,14 +95,6 @@
 // var closure = makeClosure();
 // closure();
 
-//! bug: undfined variable `value`
-// == makeClosure ==
-// 0000 line:100  opcode:OP_POP
-// 0001 line:103  opcode:OP_CLOSURE       constant_idx:1 <fn closure>
-// 0004   |     opcode:OP_CONSTANT      opcode_index:4 constant_index:17 "true"
-// 0006   |     opcode:OP_ADD
-// 0007   |     opcode:OP_RETURN
-// 0008 line:105  opcode:OP_NIL
 // fun makeClosure(value) {
 //   fun closure() {
 //     print value;
@@ -112,7 +103,7 @@
 // }
 
 // var doughnut = makeClosure("doughnut");
-// var bagel = makeClosure("bagel");
+// // var bagel = makeClosure("bagel");
 // doughnut();
 // bagel();
 
@@ -186,7 +177,6 @@ class Scone {
   topping() {
     print "scone with " + first + " and " + second;
   }
-  // bug !
   // topping(first , second) {
   //   print "scone with " + first + " and " + second;
   // }
@@ -200,19 +190,16 @@ class Scone {
   }
 }
 
-// var first = "berries";
-// var second = "cream";
-// var scone = Scone();
-// scone.topping();
-// print scone.foo;
-// scone.bar();
+var first = "berries";
+var second = "cream";
+var scone = Scone();
+scone.topping();
+print scone.foo;
+scone.bar();
 
 class Child < Scone {
   test() {
-    // bug!
-    // opcode:OP_GET_GLOBAL    opcode_index:2 constant_index:1 "super"
-    // undfined variable `super`.
-    // super.topping();
+    super.topping();
     print 1;
   }
 }

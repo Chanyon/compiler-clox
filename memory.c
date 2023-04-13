@@ -25,9 +25,9 @@ void *reallocate(void *pointer, size_t oldSize, size_t newSize) {
   //     collectGarbage();
   // #endif
   //   }
-  if (vm.bytes_allocated > vm.next_gc) {
-    collectGarbage();
-  }
+  // if (vm.bytes_allocated > vm.next_gc) {
+  //   collectGarbage();
+  // }
 
   if (newSize == 0) {
     free(pointer);

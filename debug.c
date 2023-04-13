@@ -57,6 +57,12 @@ static int jumpInstruction(const char *name, int sign, Chunk *chunk,
   return offset + 3;
 }
 
+static int byteInstruction(const char* name, Chunk *chunk, int offset) {
+    uint8_t slot = chunk->code[offset+1];
+    printf("%-16s %4d\n",name,slot);
+    return offset + 2;
+}
+
 uint32_t disassembleInstruction(Chunk *chunk, uint32_t offset) {
   printf("%04d ", offset);
 
@@ -134,9 +140,9 @@ uint32_t disassembleInstruction(Chunk *chunk, uint32_t offset) {
     }
     return offset + i;
   case OP_SET_UPVALUE:
-    return constantInstruction("OP_SET_UPVALUE", chunk, offset);
+    return byteInstruction("OP_SET_UPVALUE", chunk, offset);
   case OP_GET_UPVALUE:
-    return constantInstruction("OP_GET_UPVALUE", chunk, offset);
+    return byteInstruction("OP_GET_UPVALUE", chunk, offset);
   case OP_CLOSE_UPVALUE:
     return simpleInstruction("OP_CLOSE_UPVALUE", offset);
   case OP_CLASS:
