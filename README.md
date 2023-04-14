@@ -5,3 +5,10 @@ learning the compiler development.
 ```
 https://github.com/munificent/craftinginterpreters.git
 ```
+### build
+```
+mkdir build
+cd build
+cmake --build .
+./clox ../test.cl
+```
