@@ -59,7 +59,7 @@ static void addLocal(Token name) {
     error("Too many variables in function.");
     return;
   }
-  fprintf(stderr, "=======> '%.*s' \n", name.length, name.start);
+  // fprintf(stderr, "=======> '%.*s' \n", name.length, name.start);
   Local local;
   local.name = name;
   // local.depth = current->scopeDepth;

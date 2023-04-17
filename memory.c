@@ -25,7 +25,7 @@ void *reallocate(void *pointer, size_t oldSize, size_t newSize) {
   //     collectGarbage();
   // #endif
   //   }
-  // if (vm.bytes_allocated > vm.next_gc) {
+  // if (vm.bytes_allocated >= vm.next_gc) {
   //   collectGarbage();
   // }
 
@@ -61,8 +61,17 @@ void freeObject(Obj *object) {
   case OBJ_UPVALUE:
     ty = "OBJ_UPVALUE";
     break;
+  case OBJ_CLASS:
+    ty = "OBJ_CLASS";
+    break;
+  case OBJ_INSTANCE:
+    ty = "OBJ_INSTANCE";
+    break;
+  case OBJ_BOUND_METHOD:
+    ty = "OBJ_BOUND_METHOD";
+    break;
   default:
-    ty = "Other";
+    ty = "OTHER";
     break;
   }
   printf("--- %p free type %s\n", (void *)object, ty);

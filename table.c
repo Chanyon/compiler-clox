@@ -20,7 +20,7 @@ void freeTable(Table *table) {
 }
 
 static Entry *findEntry(Entry *entries, int capacity, ObjString *key) {
-  uint32_t idx = key->hash % capacity;
+  uint32_t idx = key->hash & (capacity - 1);
   // 墓碑计数
   Entry *tombstone = NULL;
   while (true) {
@@ -37,7 +37,7 @@ static Entry *findEntry(Entry *entries, int capacity, ObjString *key) {
     if (entry->key == key) {
       return entry;
     }
-    idx = (idx + 1) % capacity;
+    idx = (idx + 1) & (capacity - 1);
   }
 }
 
@@ -121,7 +121,7 @@ ObjString *tableFindString(Table *table, const char *chars, int length,
   if (table->count == 0) {
     return NULL;
   }
-  uint32_t idx = hash % table->capacity;
+  uint32_t idx = hash & (table->capacity - 1);
   for (;;) {
     Entry *entry = &table->entries[idx];
     if (entry->key == NULL) {
@@ -134,7 +134,7 @@ ObjString *tableFindString(Table *table, const char *chars, int length,
         memcmp(entry->key->chars, chars, length) == 0) {
       return entry->key;
     }
-    idx = (idx + 1) % table->capacity;
+    idx = (idx + 1) & (table->capacity - 1);
   }
 }
 
