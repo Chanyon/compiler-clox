@@ -18,6 +18,7 @@
 typedef struct {
   Token current;
   Token previous;
+  bool is_for_while;
   bool hadError;
   bool panicMode;
 } Parser;
@@ -25,6 +26,8 @@ typedef struct {
 Parser parser;
 Compiler *current = NULL;
 ClassCompiler *current_class = NULL;
+BreakOrContinue *head = NULL, *tail = NULL;
+
 
 static Chunk *currentChunk() { return &current->function->chunk; }
 
@@ -280,6 +283,8 @@ static void statement() {
     forStatement();
   } else if (match(TOKEN_RETURN)) {
     returnStatement();
+  } else if(match(TOKEN_BREAK)) {
+    breakStatement();
   } else {
     expressionStatement();
   }
@@ -411,6 +416,8 @@ static void ifStatement() {
 }
 
 static void whileStatement() {
+  //break/continue
+  parser.is_for_while = true;
   // 往回跳位置
   int loopStart = currentChunk()->count;
   consume(TOKEN_LEFT_PAREN, "expect `(` after while.");
@@ -423,10 +430,31 @@ static void whileStatement() {
   emitLoop(loopStart);
 
   patchJump(exitJump);
+  //break patch
+  BreakOrContinue *temp = head;
+  BreakOrContinue *last = NULL;
+
+  if (head != NULL) {
+    while (temp->next != NULL) {
+      last = temp;
+      temp = temp->next;
+    }
+
+    if (last == NULL) {
+      patchJump(temp->patch_break_continue);
+    } else {
+      patchJump(last->next->patch_break_continue);
+      tail = last;
+      last->next = NULL;
+      free(temp);
+    }
+  }
   emitByte(OP_POP);
 }
 
 static void forStatement() {
+  parser.is_for_while = true;
+
   beginScope();
   consume(TOKEN_LEFT_PAREN, "expect `(` after for.");
   // init , var foo = 0;
@@ -461,6 +489,27 @@ static void forStatement() {
   statement();
 
   emitLoop(loopStart);
+  
+  //break patch
+  BreakOrContinue *temp = head;
+  BreakOrContinue *last = NULL;
+
+  if (head != NULL) {
+    while (temp->next != NULL) {
+      last = temp; //倒数第二个节点
+      temp = temp->next;
+    }
+
+    if (last == NULL) {
+      patchJump(temp->patch_break_continue);
+    } else {
+      patchJump(last->next->patch_break_continue);
+      tail = last;
+      last->next = NULL;
+      free(temp);
+    }
+  }
+
   // if have Condtion statement
   if (exitJump != -1) {
     patchJump(exitJump);
@@ -621,6 +670,24 @@ static void returnStatement() {
     expression();
     consume(TOKEN_SEMICOLON, "expect `;` after return value.");
     emitByte(OP_RETURN);
+  }
+}
+
+static void breakStatement() {
+  consume(TOKEN_SEMICOLON, "expect `;` after break.");
+  if (parser.is_for_while) {
+    BreakOrContinue *cur = (BreakOrContinue *)malloc(sizeof(BreakOrContinue));
+    cur->patch_break_continue = emitJump(OP_JUMP);
+    cur->next = NULL;
+    // emitByte(OP_POP);
+    if (head == NULL) {
+      head = cur;
+    } else {
+      tail->next = cur;
+    }
+    tail = cur;
+  } else {
+    error("can't break top-level code, must in for or while statement.");
   }
 }
 
@@ -927,7 +994,11 @@ ObjFunction *compiler(const char *source) {
   advance();
   while (!match(TOKEN_EOF)) {
     declaration();
+    parser.is_for_while = false;
   }
   ObjFunction *function = endCompiler();
+  if (head != NULL) {
+    free(head);
+  }
   return parser.hadError ? NULL : function;
 }
