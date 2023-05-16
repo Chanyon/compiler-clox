@@ -16,3 +16,4 @@ deps
 
 #build
 build
+zig-cache/
