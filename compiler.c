@@ -398,7 +398,7 @@ static void ifStatement() {
   consume(TOKEN_RIGHT_PAREN, "expect `)` after condition.");
 
   int thenJump = emitJump(OP_JUMP_IF_FALSE);
-  // then
+  // true
   emitByte(OP_POP);
   statement();
   // }
@@ -430,6 +430,8 @@ static void whileStatement() {
   emitLoop(loopStart);
 
   patchJump(exitJump);
+  emitByte(OP_POP);
+  
   //break patch
   BreakOrContinue *temp = head;
   BreakOrContinue *last = NULL;
@@ -449,7 +451,6 @@ static void whileStatement() {
       free(temp);
     }
   }
-  emitByte(OP_POP);
 }
 
 static void forStatement() {
@@ -490,6 +491,13 @@ static void forStatement() {
 
   emitLoop(loopStart);
   
+
+  // if have Condtion statement
+  if (exitJump != -1) {
+    patchJump(exitJump);
+    emitByte(OP_POP); // if condtion is false, pop condtion value
+  }
+
   //break patch
   BreakOrContinue *temp = head;
   BreakOrContinue *last = NULL;
@@ -508,12 +516,6 @@ static void forStatement() {
       last->next = NULL;
       free(temp);
     }
-  }
-
-  // if have Condtion statement
-  if (exitJump != -1) {
-    patchJump(exitJump);
-    emitByte(OP_POP); // if condtion is false, pop condtion value
   }
   endScope();
 }
