@@ -105,6 +105,16 @@ static TokenType identifierType() {
   case 'a':
     return checkKeyword(1, 2, "nd", TOKEN_AND);
   case 'c':
+    if (scanner.current - scanner.start > 1) {
+      switch (scanner.start[1]) {
+      case 'l':
+        return checkKeyword(2, 3, "ass", TOKEN_CLASS);
+      case 'o':
+        return checkKeyword(2, 6, "ntinue", TOKEN_CONTINUE);
+      default:
+        return TOKEN_IDENTIFIER;
+      }
+    }
     return checkKeyword(1, 4, "lass", TOKEN_CLASS);
   case 'e':
     return checkKeyword(1, 3, "lse", TOKEN_ELSE);
@@ -240,6 +250,8 @@ Token scanToken() {
     return makeToken(TOKEN_STAR);
   case '/':
     return makeToken(TOKEN_SLASH);
+  case ':':
+    return makeToken(TOKEN_COLON);
   case '!':
     if (match('=')) {
       type = TOKEN_BANG_EQUAL;

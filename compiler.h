@@ -62,11 +62,15 @@ typedef struct ClassCompiler {
   bool has_super_class;
 } ClassCompiler;
 
-typedef struct BreakOrContinue {
-  int patch_break_continue; //修正jump位置
-  struct BreakOrContinue *next;
-} BreakOrContinue;
+typedef struct Break {
+  int patch_break; //修正jump位置
+  struct Break *next;
+} Break;
 
+typedef struct Continue {
+  int patch_continue;
+  struct Continue *next;
+} Continue;
 
 ObjFunction *compiler(const char *source);
 static void initCompiler(Compiler *compiler, FunctionType type);
@@ -113,6 +117,7 @@ static void funDeclaration();
 static void function(FunctionType type);
 static void returnStatement();
 static void breakStatement();
+static void continueStatement();
 static void classDeclaration();
 static void method();
 static void this_(bool canAssign);

@@ -26,8 +26,8 @@ typedef struct {
 Parser parser;
 Compiler *current = NULL;
 ClassCompiler *current_class = NULL;
-BreakOrContinue *head = NULL, *tail = NULL;
-
+Break *head = NULL, *tail = NULL;
+Continue *c_head = NULL, *c_tail = NULL;
 
 static Chunk *currentChunk() { return &current->function->chunk; }
 
@@ -283,8 +283,10 @@ static void statement() {
     forStatement();
   } else if (match(TOKEN_RETURN)) {
     returnStatement();
-  } else if(match(TOKEN_BREAK)) {
+  } else if (match(TOKEN_BREAK)) {
     breakStatement();
+  } else if (match(TOKEN_CONTINUE)) {
+    continueStatement();
   } else {
     expressionStatement();
   }
@@ -423,18 +425,44 @@ static void whileStatement() {
   consume(TOKEN_LEFT_PAREN, "expect `(` after while.");
   expression();
   consume(TOKEN_RIGHT_PAREN, "expect `)` after while.");
-  int exitJump = emitJump(OP_JUMP_IF_FALSE);
 
+  int exitJump = emitJump(OP_JUMP_IF_FALSE);
   emitByte(OP_POP);
+
+  if (match(TOKEN_COLON)) {
+    consume(TOKEN_LEFT_PAREN, "expect `(` after `:`.");
+    // Increment clause
+    int boodJump = emitJump(OP_JUMP);
+    int incrementStart = currentChunk()->count;
+    expression();
+    emitByte(OP_POP);
+    consume(TOKEN_RIGHT_PAREN, "expect `)` after for clauses.");
+    emitLoop(loopStart);
+    loopStart = incrementStart;
+    patchJump(boodJump);
+
+    //continue statement
+    Continue *cur = (Continue *)malloc(sizeof(Continue));
+    cur->patch_continue = incrementStart;
+    cur->next = NULL;
+    if (c_head == NULL) {
+      c_head = cur;
+    } else {
+      c_tail->next = cur; 
+    }
+    c_tail = cur;
+  }
+
+  //{
   statement();
   emitLoop(loopStart);
 
   patchJump(exitJump);
-  emitByte(OP_POP);
+  emitByte(OP_POP); //pop false value
   
   //break patch
-  BreakOrContinue *temp = head;
-  BreakOrContinue *last = NULL;
+  Break *temp = head;
+  Break *last = NULL;
 
   if (head != NULL) {
     while (temp->next != NULL) {
@@ -443,9 +471,9 @@ static void whileStatement() {
     }
 
     if (last == NULL) {
-      patchJump(temp->patch_break_continue);
+      patchJump(temp->patch_break);
     } else {
-      patchJump(last->next->patch_break_continue);
+      patchJump(last->next->patch_break);
       tail = last;
       last->next = NULL;
       free(temp);
@@ -485,12 +513,22 @@ static void forStatement() {
     emitLoop(loopStart);
     loopStart = incrementStart;
     patchJump(boodJump);
+
+    //continue statement
+    Continue *cur = (Continue *)malloc(sizeof(Continue));
+    cur->patch_continue = incrementStart;
+    cur->next = NULL;
+    if (c_head == NULL) {
+      c_head = cur;
+    } else {
+      c_tail->next = cur; 
+    }
+    c_tail = cur;
   }
   // block statement
   statement();
 
   emitLoop(loopStart);
-  
 
   // if have Condtion statement
   if (exitJump != -1) {
@@ -499,8 +537,8 @@ static void forStatement() {
   }
 
   //break patch
-  BreakOrContinue *temp = head;
-  BreakOrContinue *last = NULL;
+  Break *temp = head;
+  Break *last = NULL;
 
   if (head != NULL) {
     while (temp->next != NULL) {
@@ -509,9 +547,9 @@ static void forStatement() {
     }
 
     if (last == NULL) {
-      patchJump(temp->patch_break_continue);
+      patchJump(temp->patch_break);
     } else {
-      patchJump(last->next->patch_break_continue);
+      patchJump(last->next->patch_break);
       tail = last;
       last->next = NULL;
       free(temp);
@@ -678,8 +716,8 @@ static void returnStatement() {
 static void breakStatement() {
   consume(TOKEN_SEMICOLON, "expect `;` after break.");
   if (parser.is_for_while) {
-    BreakOrContinue *cur = (BreakOrContinue *)malloc(sizeof(BreakOrContinue));
-    cur->patch_break_continue = emitJump(OP_JUMP);
+    Break *cur = (Break *)malloc(sizeof(Break));
+    cur->patch_break = emitJump(OP_JUMP);
     cur->next = NULL;
     // emitByte(OP_POP);
     if (head == NULL) {
@@ -690,6 +728,30 @@ static void breakStatement() {
     tail = cur;
   } else {
     error("can't break top-level code, must in for or while statement.");
+  }
+}
+
+static void continueStatement() {
+  consume(TOKEN_SEMICOLON, "expect `;` after continue.");
+  if (parser.is_for_while) {
+    Continue *temp = c_head;
+    Continue *last = NULL;
+
+    if (c_head != NULL) {
+      while (temp->next != NULL) {
+        last = temp;
+        temp = temp->next;
+      }
+
+      if (last == NULL) {
+        emitLoop(temp->patch_continue);
+      } else {
+        emitLoop(last->next->patch_continue);
+        c_tail = last;
+        last->next = NULL;
+        free(temp);
+      }
+    }
   }
 }
 
@@ -1000,7 +1062,12 @@ ObjFunction *compiler(const char *source) {
   }
   ObjFunction *function = endCompiler();
   if (head != NULL) {
+    tail = NULL;
     free(head);
+  }
+  if (c_head != NULL) {
+    c_tail = NULL;
+    free(c_head);
   }
   return parser.hadError ? NULL : function;
 }
