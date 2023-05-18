@@ -19,24 +19,20 @@ pub fn build(b: *std.Build) void {
         .name = "clox",
         // In this case the main source file is merely a path, however, in more
         // complicated build scripts, this could be a generated file.
-        .root_source_file = null,
         .target = target,
         .optimize = optimize,
     });
 
-    {
-        const cflags = [_][]const u8{"-Wall"};
-        _ = cflags;
-        const cfiles_src = [_][]const u8{ "./chunk.c", "./memory.c", "./compiler.c", "./debug.c", "./object.c", "./scanner.c", "./table.c", "./vm.c" };
-        exe.addCSourceFile("main.c", &[_][]const u8{""});
-        exe.addCSourceFiles(&cfiles_src, &[_][]const u8{""});
-        exe.addIncludePath("./");
-        exe.linkLibC();
-    }
+    const cflags = [_][]const u8{"-Wall"};
+    _ = cflags;
+    const cfiles_src = [_][]const u8{ "main.c", "chunk.c", "memory.c", "debug.c", "value.c", "vm.c", "compiler.c", "scanner.c", "object.c", "table.c" };
+    exe.addCSourceFiles(&cfiles_src, &.{});
+    // exe.addIncludePath("./");
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
+    exe.linkLibC();
     b.installArtifact(exe);
 
     // This *creates* a Run step in the build graph, to be executed when another
@@ -61,20 +57,4 @@ pub fn build(b: *std.Build) void {
     // This will evaluate the `run` step rather than the default, which is "install".
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
-
-    // Creates a step for unit testing. This only builds the test executable
-    // but does not run it.
-    const unit_tests = b.addTest(.{
-        .root_source_file = .{ .path = "" },
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const run_unit_tests = b.addRunArtifact(unit_tests);
-
-    // Similar to creating the run step earlier, this exposes a `test` step to
-    // the `zig build --help` menu, providing a way for the user to request
-    // running the unit tests.
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_unit_tests.step);
 }
