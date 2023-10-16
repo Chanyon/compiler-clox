@@ -6,6 +6,8 @@
 *.dylib
 *.clangd
 .vscode
+.edx
+settings.lua
 
 # Test binary, built with test
 test
@@ -17,3 +19,4 @@ deps
 #build
 build
 zig-cache/
+zig-out/
