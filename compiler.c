@@ -418,9 +418,12 @@ static void ifStatement() {
 }
 
 static void whileStatement() {
-  //break/continue
+  // break/continue
   parser.is_for_while = true;
-  // 往回跳位置
+  // continue statement
+  Continue *cur = (Continue *)malloc(sizeof(Continue));
+  // 往回跳位置 L1:
+  //              vvv bytes len.
   int loopStart = currentChunk()->count;
   consume(TOKEN_LEFT_PAREN, "expect `(` after while.");
   expression();
@@ -432,7 +435,7 @@ static void whileStatement() {
   if (match(TOKEN_COLON)) {
     consume(TOKEN_LEFT_PAREN, "expect `(` after `:`.");
     // Increment clause
-    int boodJump = emitJump(OP_JUMP);
+    int boodJump = emitJump(OP_JUMP); // skip exprssion
     int incrementStart = currentChunk()->count;
     expression();
     emitByte(OP_POP);
@@ -440,27 +443,36 @@ static void whileStatement() {
     emitLoop(loopStart);
     loopStart = incrementStart;
     patchJump(boodJump);
-
+    
     //continue statement
-    Continue *cur = (Continue *)malloc(sizeof(Continue));
     cur->patch_continue = incrementStart;
     cur->next = NULL;
     if (c_head == NULL) {
       c_head = cur;
     } else {
-      c_tail->next = cur; 
+      c_tail->next = cur;
+    }
+    c_tail = cur;
+  } else {
+    //continue statement
+    cur->patch_continue = loopStart;
+    cur->next = NULL;
+    if (c_head == NULL) {
+      c_head = cur;
+    } else {
+      c_tail->next = cur;
     }
     c_tail = cur;
   }
-
+  
   //{
   statement();
   emitLoop(loopStart);
 
   patchJump(exitJump);
-  emitByte(OP_POP); //pop false value
-  
-  //break patch
+  emitByte(OP_POP); // pop false value
+
+  // break patch
   Break *temp = head;
   Break *last = NULL;
 
@@ -479,6 +491,8 @@ static void whileStatement() {
       free(temp);
     }
   }
+  
+  parser.is_for_while = false;  
 }
 
 static void forStatement() {
@@ -514,14 +528,14 @@ static void forStatement() {
     loopStart = incrementStart;
     patchJump(boodJump);
 
-    //continue statement
+    // continue statement
     Continue *cur = (Continue *)malloc(sizeof(Continue));
     cur->patch_continue = incrementStart;
     cur->next = NULL;
     if (c_head == NULL) {
       c_head = cur;
     } else {
-      c_tail->next = cur; 
+      c_tail->next = cur;
     }
     c_tail = cur;
   }
@@ -536,13 +550,13 @@ static void forStatement() {
     emitByte(OP_POP); // if condtion is false, pop condtion value
   }
 
-  //break patch
+  // break patch
   Break *temp = head;
   Break *last = NULL;
 
   if (head != NULL) {
     while (temp->next != NULL) {
-      last = temp; //倒数第二个节点
+      last = temp; // 倒数第二个节点
       temp = temp->next;
     }
 
@@ -556,6 +570,8 @@ static void forStatement() {
     }
   }
   endScope();
+  
+  parser.is_for_while = false;
 }
 
 // 函数被绑定到一个变量中
@@ -967,7 +983,7 @@ static int resolveUpValue(Compiler *compiler, Token *name) {
   }
 
   int local_idx = resolveLocal(compiler->enclosing, name);
-  
+
   if (local_idx != -1) {
     compiler->enclosing->locals[local_idx].is_captured = true;
     // printf("outer local idx: %d\n",local_idx);
