@@ -26,8 +26,8 @@ pub fn build(b: *std.Build) void {
     const cflags = [_][]const u8{"-Wall"};
     _ = cflags;
     const cfiles_src = [_][]const u8{ "main.c", "chunk.c", "memory.c", "debug.c", "value.c", "vm.c", "compiler.c", "scanner.c", "object.c", "table.c" };
+    exe.addIncludePath("./");
     exe.addCSourceFiles(&cfiles_src, &.{});
-    // exe.addIncludePath("./");
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
